@@ -142,6 +142,9 @@ def generate_king_moves(board) -> List[Tuple[int, int, Optional[int]]]:
     """Generate all legal king moves including castling."""
     moves = []
     king_square = get_lsb(board.pieces[board.side_to_move][KING])
+    if king_square < 0 or king_square > 63:
+        # No king - illegal position
+        return moves
     attacks = board.precalc_attacks.king_attacks[king_square]
     
     # Remove friendly pieces
@@ -166,6 +169,8 @@ def generate_king_moves(board) -> List[Tuple[int, int, Optional[int]]]:
 
 def is_king_move_safe(board, from_square: int, to_square: int) -> bool:
     """Check if a king move is safe."""
+    if from_square < 0 or from_square > 63 or to_square < 0 or to_square > 63:
+        return False
     king_bb = 1 << from_square
     temp_all = board.all_pieces & ~king_bb
     enemy = 1 - board.side_to_move

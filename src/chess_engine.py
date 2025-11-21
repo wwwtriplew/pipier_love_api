@@ -47,6 +47,13 @@ try:
 except ImportError:  # pragma: no cover - fallback for standalone execution
     from fast_ops import pop_lsb_fast, get_lsb_fast, count_bits_fast  # type: ignore
 
+try:
+    from .zobrist_keys import compute_pawn_hash
+    from .zobrist_full import compute_full_hash
+except ImportError:  # pragma: no cover - fallback for standalone execution
+    from zobrist_keys import compute_pawn_hash  # type: ignore
+    from zobrist_full import compute_full_hash  # type: ignore
+
 # Use fastest available version
 pop_lsb = pop_lsb_fast
 get_lsb = get_lsb_fast
@@ -144,6 +151,10 @@ class ChessBoard:
         self.checkers = 0
         self.num_checkers = 0
         
+        # Zobrist hashes
+        self.pawn_hash = 0  # Pawn structure hash for evaluation cache
+        self.zobrist_key = 0  # Full position hash for transposition table
+        
         self.setup_starting_position()
     
     def setup_from_fen(self, fen: str):
@@ -205,6 +216,10 @@ class ChessBoard:
         self.black_pawns = self.pieces[BLACK][PAWN]
         self._update_occupancy()
         self._update_check_status()
+        
+        # Compute Zobrist hashes - CRITICAL for search and TT
+        self.pawn_hash = compute_pawn_hash(self.white_pawns, self.black_pawns)
+        self.zobrist_key = compute_full_hash(self)
     
     def setup_starting_position(self):
         """Set up the standard chess starting position."""
@@ -232,6 +247,10 @@ class ChessBoard:
         self.en_passant_square = None
         self.side_to_move = WHITE
         self._update_check_status()
+        
+        # Compute Zobrist hashes - CRITICAL for search and TT
+        self.pawn_hash = compute_pawn_hash(self.white_pawns, self.black_pawns)
+        self.zobrist_key = compute_full_hash(self)
     
     def _update_occupancy(self):
         """Update combined occupancy bitboards."""
@@ -244,7 +263,15 @@ class ChessBoard:
     
     def _update_check_status(self):
         """Update check status and identify checkers."""
-        king_square = get_lsb(self.pieces[self.side_to_move][KING])
+        king_bb = self.pieces[self.side_to_move][KING]
+        if not king_bb:
+            # No king - illegal position (shouldn't happen with legal moves)
+            self.checkers = 0
+            self.num_checkers = 0
+            self.in_check = False
+            return
+        
+        king_square = get_lsb(king_bb)
         self.checkers = self._get_attackers_to_square(king_square, 1 - self.side_to_move)
         self.num_checkers = count_bits(self.checkers)
         self.in_check = self.num_checkers > 0
@@ -420,6 +447,8 @@ class ChessBoard:
             'in_check': self.in_check,
             'checkers': self.checkers,
             'num_checkers': self.num_checkers,
+            'pawn_hash': self.pawn_hash,
+            'zobrist_key': self.zobrist_key,
         }
         
         # Execute the move
@@ -472,5 +501,7 @@ class ChessBoard:
         self.in_check = state['in_check']
         self.checkers = state['checkers']
         self.num_checkers = state['num_checkers']
+        self.pawn_hash = state['pawn_hash']
+        self.zobrist_key = state['zobrist_key']
         
         return True

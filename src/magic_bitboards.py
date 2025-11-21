@@ -184,6 +184,10 @@ class MagicBitboards:
     
     def _rook_attacks_on_the_fly(self, square: int, occupancy: int) -> int:
         """Generate rook attacks for a given occupancy."""
+        # Bounds check
+        if square < 0 or square > 63:
+            return 0
+        
         attacks = 0
         rank = square // 8
         file = square % 8
@@ -213,6 +217,10 @@ class MagicBitboards:
     
     def _bishop_attacks_on_the_fly(self, square: int, occupancy: int) -> int:
         """Generate bishop attacks for a given occupancy."""
+        # Bounds check
+        if square < 0 or square > 63:
+            return 0
+        
         attacks = 0
         rank = square // 8
         file = square % 8
