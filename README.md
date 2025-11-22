@@ -2,15 +2,6 @@
 
 High-performance chess engine with FastAPI backend for web integration.
 
-## 🚀 Deploy to Render
-
-1. Push this repository to GitHub
-2. Go to [Render Dashboard](https://dashboard.render.com/)
-3. Click "New +" → "Web Service"
-4. Connect your GitHub repository
-5. Render will auto-detect `render.yaml` and deploy
-
-**Your API will be live at:** `https://your-service.onrender.com`
 
 ## 📡 API Endpoints
 

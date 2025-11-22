@@ -42,6 +42,7 @@ app.add_middleware(
     allow_origins=[
         "https://wwwtriplew.me",
         "https://www.wwwtriplew.me",
+        "https://pipier-love-api.vercel.app",  # Vercel API domain
         "http://localhost:3000",  # Common React dev port
         "http://localhost:5173",  # Common Vite dev port
         "http://localhost:8080",  # Common Vue dev port
