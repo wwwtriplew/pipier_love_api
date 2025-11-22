@@ -39,12 +39,12 @@ TT_LOWERBOUND = 1  # Fail-high (score >= beta)
 TT_UPPERBOUND = 2  # Fail-low (score <= alpha)
 
 # Late move reduction parameters (VERY CONSERVATIVE - 90% less pruning)
-LMR_MIN_DEPTH = 5        # Minimum depth to apply LMR (was 3)
+LMR_MIN_DEPTH = 4        # Minimum depth to apply LMR (was 3)
 LMR_FULL_DEPTH_MOVES = 20  # Search first N moves at full depth (was 4)
 LMR_REDUCTION = 1        # Depth reduction for late quiet moves (was 2)
 
 # Aspiration window parameters
-ASPIRATION_DELTA_INITIAL = 50   # Initial window: [score-50, score+50]
+ASPIRATION_DELTA_INITIAL = 100   # Initial window: [score-100, score+100]
 ASPIRATION_DELTA_MAX = 500      # Max window before going infinite
 
 # Quiescence parameters
@@ -1426,25 +1426,123 @@ def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
     Returns:
         (best_move, best_score, pv_line)
     """
-    # TODO: Implement complete iterative deepening with:
-    # - Aspiration windows with fail-low/fail-high re-search
-    # - Time management (check before/after each depth)
-    # - Early exit (mate found, only one move)
-    # - UCI info output per depth
-    # - History aging per iteration
-    
-    # Placeholder: single depth search
+    # === 1. Initialization ===
     stats.reset()
     tt.next_age()
     orderer.clear_killers()
+    orderer.age_history()
     repetition_stack: List[int] = []
     
-    score, best_move, pv = alpha_beta_root(
-        board, max_depth, -MATE_SCORE, MATE_SCORE,
-        evaluator, tt, orderer, stats, repetition_stack
-    )
+    best_move = None
+    best_score = 0
+    pv_line = []
     
-    return best_move, score, pv
+    # Early exit check
+    moves = board.generate_moves()
+    if len(moves) == 0:
+        return None, 0, []
+    
+    only_one_move = len(moves) == 1
+    
+    # === 2. Iterative deepening loop ===
+    delta = ASPIRATION_DELTA_INITIAL
+    
+    for depth in range(1, max_depth + 1):
+        # a. Check time before starting depth
+        elapsed_ms = (time.time() - stats.start_time) * 1000
+        if elapsed_ms > max_time_ms * 0.5 and depth > 1:
+            break  # Not enough time for next depth
+        
+        # b. Aspiration window setup
+        if depth == 1:
+            alpha = -MATE_SCORE
+            beta = MATE_SCORE
+        else:
+            alpha = best_score - delta
+            beta = best_score + delta
+        
+        # c. Search with aspiration window
+        score, move, pv = alpha_beta_root(
+            board, depth, alpha, beta,
+            evaluator, tt, orderer, stats, repetition_stack
+        )
+        
+        # d. Handle aspiration fails
+        aspiration_completed = False
+        while True:
+            # Time check: don't get stuck re-searching when time is low
+            elapsed_ms = (time.time() - stats.start_time) * 1000
+            if elapsed_ms > max_time_ms * 0.9:
+                # Time critical - accept current result even if outside window
+                aspiration_completed = False
+                break
+            
+            if score <= alpha:  # Fail-low
+                stats.aspiration_fail_low += 1
+                stats.aspiration_fails += 1
+                alpha = max(alpha - delta, -MATE_SCORE)  # Widen window down
+                delta = min(delta * 2, ASPIRATION_DELTA_MAX)
+                score, move, pv = alpha_beta_root(
+                    board, depth, alpha, beta,
+                    evaluator, tt, orderer, stats, repetition_stack
+                )
+            elif score >= beta:  # Fail-high
+                stats.aspiration_fail_high += 1
+                stats.aspiration_fails += 1
+                beta = min(beta + delta, MATE_SCORE)  # Widen window up
+                delta = min(delta * 2, ASPIRATION_DELTA_MAX)
+                score, move, pv = alpha_beta_root(
+                    board, depth, alpha, beta,
+                    evaluator, tt, orderer, stats, repetition_stack
+                )
+            else:
+                # Score within window - depth completed successfully
+                aspiration_completed = True
+                break
+        
+        # Reset delta for next depth
+        delta = ASPIRATION_DELTA_INITIAL
+        
+        # f. Update best results IMMEDIATELY after depth completes
+        # This ensures we save results from completed depths even if time expires
+        # Only skip update if aspiration window didn't complete due to time pressure
+        if aspiration_completed or depth == 1:  # Always save depth 1
+            best_score = score
+            best_move = move
+            pv_line = pv
+        
+        # g. Print UCI info (only if we updated results)
+        if aspiration_completed or depth == 1:
+            elapsed_ms = int((time.time() - stats.start_time) * 1000)
+            nps = stats.nps()
+            pv_str = " ".join([move_to_uci(m) for m in pv_line]) if pv_line else ""
+            print(f"info depth {depth} score cp {best_score} nodes {stats.nodes} "
+                  f"nps {nps} time {elapsed_ms} pv {pv_str}")
+        
+        # h. Check time after saving results - decide if we continue to next depth
+        elapsed_ms = (time.time() - stats.start_time) * 1000
+        if elapsed_ms > max_time_ms:
+            break  # Time expired, stop searching
+        
+        # i. Early exit conditions
+        if abs(best_score) >= MATE_SCORE - MAX_PLY:
+            # Mate found, no point searching deeper
+            break
+        
+        if only_one_move:
+            # Only one legal move, exit after depth 1
+            break
+    
+    # === 3. Return results ===
+    # Safety check: if no depth completed (very rare), do a quick depth 1 search
+    if best_move is None and len(moves) > 0:
+        score, move, pv = alpha_beta_root(
+            board, 1, -MATE_SCORE, MATE_SCORE,
+            evaluator, tt, orderer, stats, repetition_stack
+        )
+        return move, score, pv
+    
+    return best_move, best_score, pv_line
 
 
 # ============================================================================
