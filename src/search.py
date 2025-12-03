@@ -40,7 +40,7 @@ TT_UPPERBOUND = 2  # Fail-low (score <= alpha)
 
 # Late move reduction parameters (VERY CONSERVATIVE - 90% less pruning)
 LMR_MIN_DEPTH = 4        # Minimum depth to apply LMR (was 3)
-LMR_FULL_DEPTH_MOVES = 20  # Search first N moves at full depth (was 4)
+LMR_FULL_DEPTH_MOVES = 15  # Search first N moves at full depth (was 4)
 LMR_REDUCTION = 1        # Depth reduction for late quiet moves (was 2)
 
 # Aspiration window parameters

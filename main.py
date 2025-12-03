@@ -116,7 +116,7 @@ async def calculate_move(request: MoveRequest):
         # Initialize search components
         stats = SearchStats()
         # Create fresh TT for this request (avoid cache pollution)
-        tt = TranspositionTable(size_mb=64)  # 64MB per request
+        tt = TranspositionTable(size_mb=128)  # 128MB per request
         orderer = MoveOrderer()  # Fresh move orderer per request
         
         # Build repetition stack (empty for now - would need game history)
