@@ -37,7 +37,7 @@ evaluator = Evaluator()
 # Load Syzygy tablebases if available (perfect endgame play)
 # Graceful fallback: engine works normally if tablebases not found
 tablebase = None
-tablebase_path = os.environ.get('TABLEBASE_PATH', '/opt/syzygy')
+tablebase_path = os.environ.get('TABLEBASE_PATH', '/root/syzygy')
 
 try:
     if os.path.exists(tablebase_path) and os.path.isdir(tablebase_path):
