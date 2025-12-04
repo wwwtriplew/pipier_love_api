@@ -5,6 +5,8 @@ from typing import Optional
 import sys
 import os
 import time
+import chess
+import chess.syzygy
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -28,6 +30,26 @@ evaluator = Evaluator()
 # 1. Race conditions (API is async)
 # 2. Cache pollution (different games in TT)
 # 3. Incorrect moves from hash collisions
+
+# ========================================
+# SYZYGY ENDGAME TABLEBASE (optional)
+# ========================================
+# Load Syzygy tablebases if available (perfect endgame play)
+# Graceful fallback: engine works normally if tablebases not found
+tablebase = None
+tablebase_path = os.environ.get('TABLEBASE_PATH', '/opt/syzygy')
+
+try:
+    if os.path.exists(tablebase_path) and os.path.isdir(tablebase_path):
+        tablebase = chess.syzygy.open_tablebase(tablebase_path)
+        print(f"✅ Syzygy tablebases loaded from: {tablebase_path}")
+    else:
+        print(f"⚪ Syzygy tablebases not found at: {tablebase_path}")
+        print(f"   Engine will work normally without tablebases")
+except Exception as e:
+    print(f"⚠️  Failed to load tablebases: {e}")
+    print(f"   Engine will work normally without tablebases")
+    tablebase = None
 
 app = FastAPI(
     title="Piper Love Chess Engine API",
@@ -117,9 +139,13 @@ async def calculate_move(request: MoveRequest):
         # ========================================
         # OPENING BOOK PROBE (fast path)
         # ========================================
-        # Try opening book first - instant response if position is in book
-        # This avoids expensive search for known opening positions
-        book_move = probe_book(board, randomize=True)
+        # Only check opening book in early game (moves 1-13)
+        # After move 13, positions are rarely in book and checking wastes time
+        book_move = None
+        if board.fullmove_number <= 13:
+            # Try opening book first - instant response if position is in book
+            # This avoids expensive search for known opening positions
+            book_move = probe_book(board, randomize=True)
         
         if book_move is not None:
             # Found move in opening book - return immediately
@@ -138,12 +164,70 @@ async def calculate_move(request: MoveRequest):
             )
         
         # ========================================
-        # FULL SEARCH (if not in opening book)
+        # SYZYGY TABLEBASE PROBE (endgame fast path)
+        # ========================================
+        # If position has ≤5 pieces and tablebases loaded, probe for perfect play
+        # Safety: Multiple fallback layers ensure engine never crashes
+        if tablebase is not None:
+            try:
+                # Convert our board to python-chess board for tablebase probe
+                chess_board = chess.Board(request.fen)
+                piece_count = len(chess_board.piece_map())
+                
+                # Only probe if position has ≤5 pieces (3-4-5 piece tables)
+                if piece_count <= 5 and not chess_board.is_checkmate() and not chess_board.is_stalemate():
+                    # Probe tablebase for WDL (Win/Draw/Loss)
+                    wdl = tablebase.probe_wdl(chess_board)
+                    
+                    # If tablebase has result, find best move
+                    if wdl is not None:
+                        best_tb_move = None
+                        best_tb_wdl = -3  # Worst possible
+                        
+                        # Try all legal moves to find one that maintains/improves WDL
+                        for move in chess_board.legal_moves:
+                            chess_board.push(move)
+                            try:
+                                # Get WDL after this move (negated for opponent)
+                                next_wdl = -tablebase.probe_wdl(chess_board)
+                                if next_wdl > best_tb_wdl:
+                                    best_tb_wdl = next_wdl
+                                    best_tb_move = move
+                            except:
+                                pass  # Move leads to position not in tablebase
+                            finally:
+                                chess_board.pop()
+                        
+                        # If we found a tablebase move, return it
+                        if best_tb_move is not None:
+                            move_uci = best_tb_move.uci()
+                            # Convert WDL to centipawns (Win=+20000, Draw=0, Loss=-20000)
+                            tb_score = wdl * 20000
+                            
+                            return MoveResponse(
+                                move=move_uci,
+                                score=tb_score,
+                                depth=0,  # Tablebase = perfect depth
+                                nodes=0,  # No search needed
+                                nps=0,    # Instant
+                                time_ms=0,
+                                pv=move_uci + " (Tablebase)"
+                            )
+            except KeyboardInterrupt:
+                raise  # Always allow Ctrl+C
+            except Exception as e:
+                # Tablebase probe failed - gracefully fall through to normal search
+                # This ensures engine never crashes due to tablebase issues
+                print(f"⚠️  Tablebase probe failed: {e}")
+                pass
+        
+        # ========================================
+        # FULL SEARCH (if not in opening book or tablebase)
         # ========================================
         # Initialize search components
         stats = SearchStats()
         # Create fresh TT for this request (avoid cache pollution)
-        tt = TranspositionTable(size_mb=512)  # 512MB per request (VPS has plenty of RAM)
+        tt = TranspositionTable(size_mb=1024)  # 1GB per request (VPS has 2.5GB RAM)
         orderer = MoveOrderer()  # Fresh move orderer per request
         
         # Build repetition stack (empty for now - would need game history)
