@@ -15,6 +15,7 @@ from search import (
     TranspositionTable, MoveOrderer, SearchStats, iterative_deepening,
     move_to_uci
 )
+from opening_book import probe_book
 
 # Maximum search depth
 MAX_DEPTH = 50  # Iterative deepening will stop at time limit anyway
@@ -113,10 +114,36 @@ async def calculate_move(request: MoveRequest):
                 detail="No legal moves available (checkmate or stalemate)"
             )
         
+        # ========================================
+        # OPENING BOOK PROBE (fast path)
+        # ========================================
+        # Try opening book first - instant response if position is in book
+        # This avoids expensive search for known opening positions
+        book_move = probe_book(board, randomize=True)
+        
+        if book_move is not None:
+            # Found move in opening book - return immediately
+            from_sq, to_sq, promo = book_move
+            move_uci = move_to_uci(book_move)
+            
+            # Return book move with minimal stats (instant response)
+            return MoveResponse(
+                move=move_uci,
+                score=0,  # Book moves don't have evaluation
+                depth=0,  # Book move, not searched
+                nodes=0,  # No nodes searched
+                nps=0,    # Instant response
+                time_ms=0,  # < 1ms typically
+                pv=move_uci  # Single move from book
+            )
+        
+        # ========================================
+        # FULL SEARCH (if not in opening book)
+        # ========================================
         # Initialize search components
         stats = SearchStats()
         # Create fresh TT for this request (avoid cache pollution)
-        tt = TranspositionTable(size_mb=128)  # 128MB per request
+        tt = TranspositionTable(size_mb=512)  # 512MB per request (VPS has plenty of RAM)
         orderer = MoveOrderer()  # Fresh move orderer per request
         
         # Build repetition stack (empty for now - would need game history)

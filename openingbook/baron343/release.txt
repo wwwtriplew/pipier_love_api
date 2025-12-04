@@ -1,0 +1,312 @@
+Release notes with version 3.43
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Changes since 3.42:
+------------------
+Bugs solved:
+- Pin detection in evaluation only detected close pins.
+- Handle spaces in the syzygy path
+- Slightly more restrictive in playing easymoves
+- Fixed singular extensions bug
+- Increased searchstack size
+
+Improvement:
+- Detecting pins to the queen
+- Evaluation tuning
+- Better use of time, especially on short time controls
+- More selective in quiescense
+- Reduced aspiration window
+
+Changes since 3.41:
+------------------
+Bugs solved:
+- UCI mode possible from the command prompt
+- Handling missing dtz files correctly (I hope)
+- Show Refutations is disabled as I did not have the time yet to look at it.
+
+Improvement:
+- Changed scoring on TB hits
+- Keep probing TB during search on reaching TB positions
+- Added Syzygypath option to UCI
+- Ported to Raspberry Pi
+- Full functionality available in native linux version
+- Refactoring of several classes
+
+Changes since 3.40:
+------------------
+Bugs solved:
+- minor error with matescores in razoring fixed
+- Corrected error in pruning of drawn positions
+- Corrected error in KNNKx scoring
+
+Improvement:
+- Code refactoring: Folding multiple search methods into one template method
+- Code refactoring: Centralized statistics
+- Reporting TB hits also when a move score is sent
+- Using book server
+- Updated SyZyGy probing code. Now accepts multiple folders
+- Evaluation tuning
+
+Changes since 3.39:
+------------------
+Bugs solved:
+- minor bugs in draw(ish) detection solved
+- Major problems in evaluation tuning solved
+- Corrected bug in probing lost positions in Syzygy bases
+- corrected minor bug in quiescense
+- Corrected error in calibrating psq tables with material value
+
+Improvement:
+- Code refactoring for side independent code
+- Reducing pawn shield score for pawns on semi open file
+- Increased amount of singular move detection searches slightly
+- Reduced amount of evaluations in quiescence search slightly
+- Calibration of mobility tables with material value
+- Evaluation tuning
+
+Changes since 3.38:
+------------------
+Bugs solved:
+- minor bug in 'wrong bishop and rookpawn' ending solved
+- Bugs in ctg support solved
+
+Improvement:
+- Code refactoring for draw(ish) detection
+- Code refactoring for search
+- Value constraints for automated evaluation tuning
+- Evaluation tuning
+
+Changes since 3.37:
+------------------
+Bugs solved:
+- bug in bishop evaluation solved
+
+Improvement:
+- Implemented fully automated evaluation tuning
+- Evaluation Tuning
+
+Changes since 3.36:
+------------------
+Bugs solved:
+- Sometimes En Passant moves were included in the moveslist twice
+- Search node object overwritten when attempting razoring
+- Sometimes inverted matescore after razoring
+- Move selection with the Baron's book format selects less favourable moves more often than it should
+
+Improvement:
+- implemented SyZyGy table probing (not for RevII) (linux version untested)
+- improving move ordering by always generating attacktables for inner nodes
+- Reduce king safety penalty for safest king
+- Reduce passer bonus for doubled and surrounded passers
+- Improved scoring for opponent good bishops.
+- Recognizing KRPPKR endgames with pawns on f and h file as drawish
+- Native support for polyglot books (not RevII)
+- Multiple books can be loaded (not RevII)
+- Removed Lazy Evaluation completely from the code (was already disabled)
+- Increased number of tunable evaluation parameters
+- Evaluation Tuning
+- Reduced size of the Magic Movegeneration Tables.
+
+Revelation II version:
+- removed irrelevant configuration options
+
+Changes since 3.35:
+------------------
+Bugs solved:
+- hashtable was always set at 10MB in console and winboard modes, fixed now.
+- winboard and uci modes can now also be forced from the console by sending 'uci' or 'xboard' commands
+
+Improvement:
+- Recognize that a pawn on 7th, blocked by the own rook in (single) rook endings has problems to
+  promote
+- Sending seldepth in UCI
+- Added the icsmode command to force/prevent the engine from kibitzing independent of the reception of the ics command (WB only)
+- Available as engine in the Revelation II chess computer (as version 1.1)
+- Evaluation tuning
+
+Changes since 3.34:
+------------------
+Bugs solved:
+- Bug in SMP solved
+- Enabled booklearning (baron's own book format) again
+- Fixed bitbase errors
+- Removed bugs from epd testsuite handling
+- Fixed the fixed-time-per-move bug in the winboard protocol
+- fixed rook-against-connected-passers evaluation
+- fixed small bug in trapped knight detection
+- removed mate score bug
+
+Improvement:
+- Mate scores were out of 16-bit range in winboard mode which causes problems in some applications
+- Improved reuse of old hashtable entries
+- Improved hashtable prefetching
+- King safety evaluation tuning improved
+- Added new king safety evaluation terms
+- Added new pawnstructure evaluation terms
+- New console command to test the SMP efficiency (smpbench <depth> <nr threads>)
+- Refactoring of bitbase code
+- Refactoring of benchmarking code
+- Refactoring of move parsing code
+- Refactoring of some search code
+- Increased the amount of side independent code (reduces code size)
+- More selective queen capture extensions
+- extending quiescense search with pawn-to-7th moves
+- removing (more) pointless moves from quiescense search
+- Move ordering improvements
+- Evaluation tuning
+
+Linux Version:
+	Bugs solved:
+	- Implemented Mutex and Signal classes for Linux so that helper threads are no 
+	  longer doing busy waiting when the engine is idle
+
+Windows Version:
+	Improvement:
+	- NUMA support in the hashtable (compilation option, available on request)
+	- Added option 'gluecores' to set the affinity of workers to a single cpu core
+
+
+Changes since 3.33:
+------------------
+Bugs solved:
+- Solved a problem where no book moves are played in a second game in a row in Winboard
+- corrected small bug in console mode
+- corrected bug in passer evaluation
+- corrected bug with mate scores in hashtable
+- corrected bug where Baron continues when GUI crashes
+- corrected bug with exaggerated scores
+- removed errors in UCI mode (most GUIs would not show them anyway)
+
+Improvement:
+- Using popcnt instruction on cpus where it is available.
+- Refactoring of lock classes.
+- Refactoring of evaluation tuning classes.
+- Refactoring of OS/Build dependencies
+- Major refactoring of book classes
+- Book check File is no longer required
+- Removed dependency on pthreads dll.
+- Revitalised the use of the messages class, moving more strings outside the executable
+- (32 bits) Linux version (without book and bitbase support) available on request
+- Set mate score now to 200000 to give more space to evaluation scores.
+- Evaluation Tuning
+
+Other changes:
+- Migrated to use Visual Studio 2012 Express. Support for windows versions older than Vista has ceased. 
+  Binaries will no longer be PGO-ed as this is not supported by the free compiler version.
+
+Changes since 3.32:
+------------------
+Bugs solved:
+- Enabling the winboard 'ping' command
+- Fixed errors in static mate and stalemate detection
+- Fixed minor error in evaluation tuning
+- Fixed minor error in parsing of razoring margin settings
+
+Improvement:
+- Refactored the interface code to winboard, uci and the console.
+- Minor refactoring of attack tables
+- Refactoring of the chessboard class
+- Minor refactoring of the chessgame class
+- Refactoring of the pawn structure code
+- Minor refactoring of the draw recognition code
+- Updated default margins for prunelevel 7 and 8
+- Storing real mate values in the hashtable
+- Improved handling of bitbase scores during search
+- Minor Evaluation tuning
+
+Changes since 3.31:
+-------------------
+Bugs solved:
+- Major bug in adapting the razor (prune) margins
+- Some bugs in UCI configuration options corrected
+- Incorrectly gave unstoppable pawn bonus for rookpawns that were stoppable (because they are rookpawns)
+- Fixed time per move in UCI works again.
+- bug in king safety solved (occurs rarely)
+- corrected bugs in drawish-rook-ending detection
+
+Improvement:
+- Option added to enable razoring in PV nodes
+- Razoring now possible up to 8 plies
+- Retuned razoring margins
+- The book 'baron' is no longer a default book. When a Baron-formatted book is used it must be specified in the baron.ini file
+- improved evaluation of missing fianchetto bishop
+- improved evaluation of imbalance material (queen versus no queen)
+- Evaluation tuning
+
+Changes since 3.30a:
+-------------------
+Bugs solved:
+- Minor bug in hashtable solved that was only relevant for very deep searches.
+
+Improvements:
+- Improved use of bitbases where very high/low cutoff scores are used. This means that bitbase wins are preferred over material gain.
+- Improvements in hashtable speed and SMP resilience (less simultaneous writes will occur)
+- Improvements to the evaluation tuning engine for winning/losing positions
+- Razoring margins are now adjustable per bound and per amount of depthleft. This is only intended to be used for razoring tuning tests.
+- Minor Evaluation tuning
+
+Changes since 3.30:
+------------------
+Bugs solved:
+- Fixed nullmove pruning that was broken in 3.30
+- Fixed defaults regarding lmrextra
+- fixed default and valid value range regarding nullprogress (+1)
+
+Changes since 3.29:
+------------------
+Bugs solved:
+- Solved a minor bug regarding supported passers on the a-file
+- solved a minor counting error with unstoppable passer on the initial rank
+
+Improvements:
+- There is an additional set of options for reductions, that will reduce additional (quarter)plies. The options are called 'lmrextrapv' and 'lmrextrascout' (can be set in baron.ini) and currently will have a default of 0.
+- Added endgame knowledge of rook against connected passers
+- Revisited piece exchange bonus when the stronger side is a number of pawns up
+- Changes in book scoring
+- Added knowledge on simple rook ending
+- Minor change in the handling of 'nullprogress'. This means that you need to add 1 to get the similar behaviour as in previous versions (0 will now turn the impact of nullprogress off).
+- Evaluation tuning.
+
+Changes since 3.28:
+------------------
+
+Bugs solved:
+- 50-move draw bug fixed
+- SMP bug fixed that caused aborting searching plies, resulting in the display of erroneous drawscores
+- A buffer overflow in the internal epd test suite code is fixed
+- FRC/Chess960 support is fixed
+
+Improvements:
+- Rewritten Hashkey handling in the hashtable. More bits are now available to prevent hashkey collissions
+- Redesigned the Position Learning code as part of the ongoing rewrite.
+    * The two learning options are now replaced by a single new one: learning. It can be turned on or off. 
+    * The length of the zobrist key in the learning file is increased from 64 to 128 bits
+      This makes the learning file incompatible with previous versions. The name is changed to 'baron.plf'
+- New defaults for several parameters are chosen, most of them based on the work by Rodolfo Leoni. These are reflected
+  by the attached sample baron.ini file. Among those that are impacted:
+    * nullbase (now 10)
+    * nullprogress (now 8)
+    * singmargin (still 100, but internally the values were changed, comparable to the old 40)
+    * splitdepth (now 12)
+  The recommendation is still to leave everything commented out unless you know what you're doing. Default may change in a future release again
+- Changed scoring weights of the Baron's own book format. Not relevant for other book formats
+- Multi-PV mode is more stable (i.e. moves remain in the same order unless the score changes)
+
+Changes since 3.27:
+------------------
+
+Bugs solved:
+- Fixed a bug in interior draw evaluation
+- Repetition draw bug solved
+- Own games stored in the Baron book again
+- Bug in SEE solved (related to pawn moves that are not captures)
+- Major bug solved in handling the end of the game (which is the start of a new game in UCI)
+  resulting in the Baron to hang.
+
+Improvements:
+- Add more positions into the learning file to help position learning
+- Deeplearn improvements. It is now interruptable, and playout depth is limited based on analysis depth
+- Minor bishop/knight evaluation improvements
+- Option 'priolow' added (only in baron.ini) to set priority of the Baron below normal
+- Evaluation tuning

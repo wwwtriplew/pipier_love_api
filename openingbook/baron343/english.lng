@@ -1,0 +1,93 @@
+# English Language file
+# (c) 2012 Richard Pijl
+
+0 Undefined Message
+1 Read
+2 Written
+3 ERROR
+4 Unexpected end of file
+5 games imported
+6 Unexpected end of line during reading of a game tag at line
+7 Illegal FEN string
+8 Move parse error at line
+9 Illegal move
+10 at line
+11 Expected move number or result at line
+12 Expected a result at line
+13 Unexpected character found at line
+14 Error during import at line
+15 Saving game
+16 Games Rewritten
+17 Games
+18 Lines Read
+19 Preparing the database to import the games
+20 Expected game begin marker
+21 Expected marker MARKTAGBEGIN
+22 Games Reindexed
+23 Index Blocks Optimized
+24 Creating a new position index file
+25 Error reading tags
+26 No open database
+27 Deleted Games
+28 Database
+29 29
+30 30
+31 31
+32 Opened
+33 33
+34 34
+35 35
+36 36
+37 37
+38 38
+39 39
+40 40
+41 41
+42 42
+43 File not found
+2000 Error (BookDescription): Reading from the description file (%s) failed\n
+2001 Error (BookDescription): Initialisation failed\n
+2002 Error (BookDescription): File already exists\n
+2003 Error (BookDescription): File creation failed:\n
+2004 Error (BookDescription): Could not open the description file for updating\n
+2005 Error (BookDescription): Could not open the description file for browsing\n
+2006 Error (BookDescription): Book version cannot be read by this version of the program\n
+2007 Error (BookDescription): Error while closing the file\n
+2008 Error (BookDescription): Error while deleting the file: %s\n
+2009 Error (BookDescription): File is not opened\n
+2010 Error (BookDescription): File is not open for writing\n
+2011 Error (BookDescription): Writing to the description file (%s) failed\n
+2012 Error (BookDescription): Illegal attribute value (%d) for attribute %s\n
+2030 Error (BookBaronMove): BookBaronMoveFile is not open\n
+2031 Error (BookBaronMove): The object is not initialised before use in method %s\n
+2032 Error (BookBaronMove): Error writing the move attributes in method %s\n
+2033 Error (BookBaronMove): Error reading the move attributes in method %s\n
+2034 Error (BookBaronMove): Results to not add up to the specified number of games in method %s\n
+2040 Error (BookBaronMoveFile): File %s already exists\n
+2041 Error (BookBaronMoveFile): Could not create file %s\n
+2042 Error (BookBaronMoveFile): Could not write in File\n
+2043 Error (BookBaronMoveFile): Could not create Indexfile %s\n
+2044 Error (BookBaronMoveFile): Could not open the moves file\n
+2045 Error (BookBaronMoveFile): Could not open the index file\n
+2046 Error (BookBaronMoveFile): Could not read the moves file\n
+2047 Error (BookBaronMoveFile): Book version is more recent and cannot be read by this version of the program\n
+2048 Error (BookBaronMoveFile): Book version is older and cannot be read by this version of the program\n
+2049 Warning: Book version is older and not all features of this version of the program will be used\n
+2050 Error (BookBaronMoveFile): could not move to position in donor position file\n
+2051 Error (BookBaronMoveFile): could not load a book position from the donor position file\n
+2052 Error (BookBaronMoveFile): could not initialize search in indexfile\n
+2053 Error (BookBaronMoveFile): could not move to position in position file\n
+2054 Error (BookBaronMoveFile): could not load a book position from the position file\n
+2055 Error (BookBaronMoveFile): Failed to update a book position\n
+2056 Error (BookBaronMoveFile): Failed to insert a book position\n
+2057 Sorting: %d:%d(%d)\r
+2058 Sorted: %d:%d(%d) \n
+2059 \nStopping ... finish by rebuilding the index\n
+2060 Error (BookBaronMoveFile): Add an index to the index file\n
+2061 %d/%d\r
+2062 Index rebuilding finished\n
+2063 %d positions in the positions file\n
+2064 Error (BookBaronMoveFile): Could not add position to the index\n
+2065 Error (BookBaronMoveFile): Could not update position count in the position file\n
+2080 Book is opened\n
+2081 Book is not open\n
