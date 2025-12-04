@@ -201,8 +201,10 @@ async def calculate_move(request: MoveRequest):
                         # If we found a tablebase move, return it
                         if best_tb_move is not None:
                             move_uci = best_tb_move.uci()
-                            # Convert WDL to centipawns (Win=+20000, Draw=0, Loss=-20000)
-                            tb_score = wdl * 20000
+                            # Convert WDL to centipawns
+                            # Use best_tb_wdl (the WDL after our move) not wdl (before move)
+                            # WDL values: 2=Win, 1=CursedWin, 0=Draw, -1=BlessedLoss, -2=Loss
+                            tb_score = best_tb_wdl * 10000  # ±20000 for win/loss, 0 for draw
                             
                             return MoveResponse(
                                 move=move_uci,
