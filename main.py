@@ -26,7 +26,7 @@ from opening_book import probe_book
 # Without warmup, first request is SLOW (5-8k NPS).
 # With warmup, all requests are FAST (50k-200k+ NPS).
 try:
-    import __pypy__
+    import __pypy__  # type: ignore[import-not-found]
     # Running under PyPy - warm up the JIT
     print("🔥 Detected PyPy - running JIT warmup...")
     from jit_warmup import warmup_jit

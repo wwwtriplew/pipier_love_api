@@ -43,21 +43,18 @@ except ImportError:  # Fallback when run as a standalone module
     )
 
 try:
-    from .fast_ops import pop_lsb_fast, get_lsb_fast, count_bits_fast
-except ImportError:  # pragma: no cover - fallback for standalone execution
-    from fast_ops import pop_lsb_fast, get_lsb_fast, count_bits_fast  # type: ignore
-
-try:
     from .zobrist_keys import compute_pawn_hash
     from .zobrist_full import compute_full_hash
 except ImportError:  # pragma: no cover - fallback for standalone execution
     from zobrist_keys import compute_pawn_hash  # type: ignore
     from zobrist_full import compute_full_hash  # type: ignore
 
-# Use fastest available version
-pop_lsb = pop_lsb_fast
-get_lsb = get_lsb_fast
-count_bits = count_bits_fast
+# CRITICAL: Direct function names (no reassignment) for PyPy JIT optimization
+# PyPy JIT cannot optimize through dynamic function references!
+# We use the _orig versions directly to enable JIT inlining
+pop_lsb = _pop_lsb_orig
+get_lsb = _get_lsb_orig
+count_bits = _count_bits_orig
 
 # Piece constants (must be defined before importing move_generation to avoid circular import)
 WHITE = 0
