@@ -209,6 +209,7 @@ def generate_castling_moves(board) -> List[Tuple[int, int, Optional[int]]]:
     
     if board.side_to_move == WHITE:
         if (board.castling_rights & WHITE_KINGSIDE and
+            (board.pieces[WHITE][ROOK] & (1 << H1)) and  # Verify rook on h1
             not (board.all_pieces & 0x0000000000000060) and
             not board.is_square_attacked(E1, BLACK) and
             not board.is_square_attacked(F1, BLACK) and
@@ -216,6 +217,7 @@ def generate_castling_moves(board) -> List[Tuple[int, int, Optional[int]]]:
             moves.append((E1, G1, None))
         
         if (board.castling_rights & WHITE_QUEENSIDE and
+            (board.pieces[WHITE][ROOK] & (1 << A1)) and  # Verify rook on a1
             not (board.all_pieces & 0x000000000000000E) and
             not board.is_square_attacked(E1, BLACK) and
             not board.is_square_attacked(D1, BLACK) and
@@ -223,6 +225,7 @@ def generate_castling_moves(board) -> List[Tuple[int, int, Optional[int]]]:
             moves.append((E1, C1, None))
     else:
         if (board.castling_rights & BLACK_KINGSIDE and
+            (board.pieces[BLACK][ROOK] & (1 << H8)) and  # Verify rook on h8
             not (board.all_pieces & 0x6000000000000000) and
             not board.is_square_attacked(E8, WHITE) and
             not board.is_square_attacked(F8, WHITE) and
@@ -230,6 +233,7 @@ def generate_castling_moves(board) -> List[Tuple[int, int, Optional[int]]]:
             moves.append((E8, G8, None))
         
         if (board.castling_rights & BLACK_QUEENSIDE and
+            (board.pieces[BLACK][ROOK] & (1 << A8)) and  # Verify rook on a8
             not (board.all_pieces & 0x0E00000000000000) and
             not board.is_square_attacked(E8, WHITE) and
             not board.is_square_attacked(D8, WHITE) and

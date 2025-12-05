@@ -76,15 +76,6 @@ def execute_move(board, from_square: int, to_square: int, promotion: Optional[in
     Execute a move on the board.
     Returns True if move was legal and made, False otherwise.
     """
-    # Save state for incremental hash updates
-    old_castling_rights = board.castling_rights
-    old_ep_square = board.en_passant_square
-    
-    # Check if old EP square is actually in the hash (before board state changes)
-    # This is needed because we only include EP in hash if it's actually legal
-    old_ep_was_in_hash = (old_ep_square is not None and 
-                          is_ep_capture_legal(board, old_ep_square))
-    
     moving_color = board.side_to_move
     enemy_color = 1 - moving_color
     
@@ -99,6 +90,32 @@ def execute_move(board, from_square: int, to_square: int, promotion: Optional[in
     
     if piece_type is None:
         return False
+    
+    # ========================================================================
+    # CRITICAL: VALIDATE CASTLING *BEFORE* MODIFYING BOARD STATE
+    # This prevents board corruption when illegal castling is attempted.
+    # We must check rook existence BEFORE touching any bitboards.
+    # ========================================================================
+    if piece_type == KING and abs(to_square - from_square) == 2:
+        # This is a castling attempt - validate rook exists first
+        if to_square > from_square:  # Kingside
+            rook_from = from_square + 3
+        else:  # Queenside
+            rook_from = from_square - 4
+        
+        rook_bb = 1 << rook_from
+        if not (board.pieces[board.side_to_move][ROOK] & rook_bb):
+            # No rook for castling - illegal move
+            return False  # SAFE: No board modifications made yet
+    
+    # Save state for incremental hash updates
+    old_castling_rights = board.castling_rights
+    old_ep_square = board.en_passant_square
+    
+    # Check if old EP square is actually in the hash (before board state changes)
+    # This is needed because we only include EP in hash if it's actually legal
+    old_ep_was_in_hash = (old_ep_square is not None and 
+                          is_ep_capture_legal(board, old_ep_square))
     
     # Update piece bitboards
     to_bb = 1 << to_square
@@ -142,7 +159,7 @@ def execute_move(board, from_square: int, to_square: int, promotion: Optional[in
     # Handle castling
     if piece_type == KING:
         if abs(to_square - from_square) == 2:
-            # Castling move
+            # Castling move (rook existence already validated at top of function)
             is_castling = True
             if to_square > from_square:  # Kingside
                 is_kingside_castle = True
@@ -153,8 +170,10 @@ def execute_move(board, from_square: int, to_square: int, promotion: Optional[in
                 rook_from = from_square - 4
                 rook_to = from_square - 1
             
+            # Move the rook (we know it exists from validation at top)
             board.pieces[board.side_to_move][ROOK] &= ~(1 << rook_from)
             board.pieces[board.side_to_move][ROOK] |= 1 << rook_to
+
         
         # Update castling rights
         if board.side_to_move == WHITE:

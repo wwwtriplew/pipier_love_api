@@ -40,7 +40,7 @@ TT_UPPERBOUND = 2  # Fail-low (score <= alpha)
 
 # Late move reduction parameters (VERY CONSERVATIVE - 90% less pruning)
 LMR_MIN_DEPTH = 4        # Minimum depth to apply LMR (was 3)
-LMR_FULL_DEPTH_MOVES = 15  # Search first N moves at full depth (was 4)
+LMR_FULL_DEPTH_MOVES = 17  # Search first N moves at full depth (was 4)
 LMR_REDUCTION = 1        # Depth reduction for late quiet moves (was 2)
 
 # Aspiration window parameters
@@ -1274,21 +1274,33 @@ def alpha_beta_root(board: ChessBoard, depth: int, alpha: int, beta: int,
     
     # Extract full PV from TT by following the chain
     pv_line = []
+    pv_moves_made = 0  # Track how many moves we actually made
     if best_move:
         pv_line.append(best_move)
-        board.make_move(*best_move)
-        
-        # Follow TT chain to build PV (max 20 moves to avoid infinite loops)
-        for _ in range(min(20, depth)):
-            _, tt_move = tt.probe(board.zobrist_key, 0, 0, -MATE_SCORE, MATE_SCORE)
-            if tt_move is None:
-                break
-            pv_line.append(tt_move)
-            board.make_move(*tt_move)
-        
-        # Unmake ALL moves to restore board state (including the first one!)
-        for _ in range(len(pv_line)):
-            board.unmake_move()
+        if board.make_move(*best_move):
+            pv_moves_made += 1
+            
+            # Follow TT chain to build PV (max 20 moves to avoid infinite loops)
+            for _ in range(min(20, depth)):
+                _, tt_move = tt.probe(board.zobrist_key, 0, 0, -MATE_SCORE, MATE_SCORE)
+                if tt_move is None:
+                    break
+                
+                # CRITICAL: Validate move before making it
+                # If make_move returns False (illegal move), stop PV extraction
+                if board.make_move(*tt_move):
+                    pv_line.append(tt_move)
+                    pv_moves_made += 1
+                else:
+                    # Illegal move in TT (hash collision or stale entry) - stop here
+                    break
+            
+            # Unmake only the moves we successfully made
+            for _ in range(pv_moves_made):
+                board.unmake_move()
+        else:
+            # best_move itself was illegal (should never happen) - clear pv_line
+            pv_line = []
     
     return best_score, best_move, pv_line
 
