@@ -2,77 +2,55 @@
 # Critical Check: Is the SERVICE actually using PyPy?
 
 echo "=========================================="
-echo "CRITICAL: Which Python is uvicorn using?"
+echo "CRITICAL: Which Python is the service using?"
 echo "=========================================="
 echo ""
 
 cd /root/pipier_love_api
 
-echo "1. Check what 'uvicorn' executable is"
+echo "1. Check venv/bin/python3 (what uvicorn uses)"
 echo "--------------------------------------"
-which uvicorn
-file $(which uvicorn)
-head -1 $(which uvicorn)
+echo "Symlink:"
+ls -la /root/venv/bin/python3
+echo ""
+echo "Resolves to:"
+readlink -f /root/venv/bin/python3
+echo ""
+echo "Version:"
+/root/venv/bin/python3 --version
 
 echo ""
-echo "2. Check venv bin directory"
+echo "2. Test what implementation venv/bin/python3 is"
 echo "--------------------------------------"
-ls -la /root/venv/bin/ | grep -E "python|pypy|uvicorn"
+/root/venv/bin/python3 -c "
+import sys
+print(f'Implementation: {sys.implementation.name}')
+print(f'Executable: {sys.executable}')
+"
 
 echo ""
-echo "3. Check if uvicorn is using PyPy"
+echo "3. Check running service process"
 echo "--------------------------------------"
-/root/venv/bin/uvicorn --version 2>&1 | head -5
-
-echo ""
-echo "4. Check what Python the running service uses"
-echo "--------------------------------------"
-SERVICE_PID=$(pgrep -f "uvicorn main:app")
+SERVICE_PID=$(pgrep -f "uvicorn main:app" | head -1)
 if [ -n "$SERVICE_PID" ]; then
     echo "Service PID: $SERVICE_PID"
-    echo "Command line:"
-    ps aux | grep $SERVICE_PID | grep -v grep
     echo ""
-    echo "Executable:"
-    ls -la /proc/$SERVICE_PID/exe
+    echo "Command:"
+    ps -p $SERVICE_PID -o cmd=
+    echo ""
+    echo "Executable path:"
+    readlink -f /proc/$SERVICE_PID/exe 2>/dev/null || echo "Could not resolve"
 else
     echo "Service not running!"
 fi
 
 echo ""
-echo "5. Test: Which Python does uvicorn use when called from venv?"
+echo "4. Quick NPS test with venv/bin/python3"
 echo "--------------------------------------"
-/root/venv/bin/python3 -c "import sys; print(f'Python: {sys.executable}'); print(f'Implementation: {sys.implementation.name}')"
-
-echo ""
-echo "6. Check if venv/bin/python3 is symlinked to pypy3"
-echo "--------------------------------------"
-ls -la /root/venv/bin/python3
-readlink -f /root/venv/bin/python3
-
-echo ""
-echo "7. THE SMOKING GUN TEST"
-echo "--------------------------------------"
-echo "Testing perft with the EXACT command the service would use:"
-cd /root/pipier_love_api
 /root/venv/bin/python3 -c "
 import sys
-print(f'Running under: {sys.implementation.name}')
-print(f'Executable: {sys.executable}')
+print(f'Testing with: {sys.implementation.name}')
 
-if sys.implementation.name == 'cpython':
-    print('⚠️ SERVICE IS USING CPYTHON, NOT PYPY!')
-elif sys.implementation.name == 'pypy':
-    print('✓ Service is using PyPy')
-    
-    # Test JIT
-    import __pypy__
-    try:
-        print(f'JIT enabled: {__pypy__.jit_enabled()}')
-    except:
-        print('JIT status unknown')
-
-# Test performance
 from src.chess_engine import ChessBoard
 from src.magic_bitboards import get_lsb
 import time
@@ -92,7 +70,7 @@ def perft(b, d):
 start = time.time()
 nodes = perft(board, 3)
 nps = int(nodes / (time.time() - start))
-print(f'NPS: {nps:,}')
+print(f'NPS with venv python3: {nps:,}')
 "
 
 echo ""
@@ -100,11 +78,9 @@ echo "=========================================="
 echo "DIAGNOSIS"
 echo "=========================================="
 echo ""
-echo "If service is using CPython:"
-echo "  - Explains 7.6k NPS (CPython in production is slower due to load)"
-echo "  - Fix: Make sure venv is created with --copies flag and pypy3"
+echo "Key question: Is venv/bin/python3 -> cpython or pypy?"
 echo ""
-echo "If service is using PyPy:"
-echo "  - Something else is wrong (uvicorn overhead? async issues?)"
-echo "  - Need deeper investigation"
+echo "If CPython → Service is NOT using PyPy (explains slow speed)"
+echo "If PyPy → Service IS using PyPy (need different explanation)"
 echo ""
+
