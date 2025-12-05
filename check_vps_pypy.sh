@@ -87,14 +87,38 @@ echo "-------------------------------------------"
 python3 -c "
 import sys
 import time
-sys.path.insert(0, 'src')
-from board_state import Position
+import os
 
-board = Position()
-board.perft(2)  # Warmup
+# Add src to path and change to repo directory
+repo_dir = os.path.dirname(os.path.abspath('.'))
+sys.path.insert(0, os.path.join(repo_dir, 'src'))
+os.chdir(repo_dir)
+
+# Import and test
+from chess_engine import ChessBoard
+
+board = ChessBoard()
+
+# Warmup
+for _ in range(2):
+    moves = board.generate_moves()
+    if moves:
+        board.make_move(*moves[0])
+        board.unmake_move()
+
+# Simple perft implementation
+def perft(board, depth):
+    if depth == 0:
+        return 1
+    nodes = 0
+    for move in board.generate_moves():
+        board.make_move(*move)
+        nodes += perft(board, depth - 1)
+        board.unmake_move()
+    return nodes
 
 start = time.time()
-nodes = board.perft(3)
+nodes = perft(board, 3)
 elapsed = time.time() - start
 nps = int(nodes / elapsed) if elapsed > 0 else 0
 
@@ -124,14 +148,38 @@ if [ -n "$PYPY_EXEC" ]; then
     $PYPY_EXEC -c "
 import sys
 import time
-sys.path.insert(0, 'src')
-from board_state import Position
+import os
 
-board = Position()
-board.perft(2)  # Warmup
+# Add src to path and change to repo directory
+repo_dir = os.path.dirname(os.path.abspath('.'))
+sys.path.insert(0, os.path.join(repo_dir, 'src'))
+os.chdir(repo_dir)
+
+# Import and test
+from chess_engine import ChessBoard
+
+board = ChessBoard()
+
+# Warmup
+for _ in range(2):
+    moves = board.generate_moves()
+    if moves:
+        board.make_move(*moves[0])
+        board.unmake_move()
+
+# Simple perft implementation
+def perft(board, depth):
+    if depth == 0:
+        return 1
+    nodes = 0
+    for move in board.generate_moves():
+        board.make_move(*move)
+        nodes += perft(board, depth - 1)
+        board.unmake_move()
+    return nodes
 
 start = time.time()
-nodes = board.perft(3)
+nodes = perft(board, 3)
 elapsed = time.time() - start
 nps = int(nodes / elapsed) if elapsed > 0 else 0
 
