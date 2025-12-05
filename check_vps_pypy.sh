@@ -88,9 +88,9 @@ python3 -c "
 import sys
 import time
 sys.path.insert(0, 'src')
-from board_state import BoardState
+from board_state import Position
 
-board = BoardState()
+board = Position()
 board.perft(2)  # Warmup
 
 start = time.time()
@@ -125,9 +125,9 @@ if [ -n "$PYPY_EXEC" ]; then
 import sys
 import time
 sys.path.insert(0, 'src')
-from board_state import BoardState
+from board_state import Position
 
-board = BoardState()
+board = Position()
 board.perft(2)  # Warmup
 
 start = time.time()
