@@ -34,9 +34,9 @@ $PYTHON_CMD -c "
 import sys
 import time
 sys.path.insert(0, 'src')
-from chess_engine import ChessBoard
+from board_state import BoardState
 
-board = ChessBoard()
+board = BoardState()
 
 # Warmup
 print('Warming up...')

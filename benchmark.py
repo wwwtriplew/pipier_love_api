@@ -11,7 +11,7 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from chess_engine import ChessBoard
+from board_state import BoardState
 
 def benchmark_perft(depth=4):
     """Run a quick perft benchmark."""
@@ -20,7 +20,7 @@ def benchmark_perft(depth=4):
     print("=" * 70)
     
     # Test position: starting position
-    board = ChessBoard()
+    board = BoardState()
     
     print(f"\nPython version: {sys.version}")
     print(f"Python executable: {sys.executable}")
@@ -56,7 +56,7 @@ def benchmark_search(depth=5):
     print(f"Search Benchmark - Depth {depth}")
     print("=" * 70)
     
-    board = ChessBoard()
+    board = BoardState()
     
     print(f"\nSearching to depth {depth}...")
     start_time = time.time()
