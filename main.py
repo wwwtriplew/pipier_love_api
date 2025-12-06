@@ -8,16 +8,14 @@ import time
 import chess
 import chess.syzygy
 
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-
-from chess_engine import ChessBoard
-from evaluation import Evaluator
-from search import (
+from src.chess_engine import ChessBoard
+from src.evaluation import Evaluator
+from src.search import (
     TranspositionTable, MoveOrderer, SearchStats, iterative_deepening,
     move_to_uci
 )
-from opening_book import probe_book
+from src.opening_book import probe_book
+from src.jit_warmup import warmup_jit
 
 # ========================================
 # PYPY JIT WARMUP (Critical for Performance)
@@ -29,7 +27,6 @@ try:
     import __pypy__  # type: ignore[import-not-found]
     # Running under PyPy - warm up the JIT
     print("🔥 Detected PyPy - running JIT warmup...")
-    from jit_warmup import warmup_jit
     warmup_nps = warmup_jit()
     print(f"✓ PyPy JIT warmed up - ready for {warmup_nps:,} NPS")
 except ImportError:
