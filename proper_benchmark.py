@@ -87,12 +87,12 @@ def test_chess_perft():
     
     board = ChessBoard()
     
-    # Heavy warmup - drive JIT to optimize REAL workload
-    print("Heavy warmup (2000 iterations at depth 2)...")
-    for i in range(2000):
+    # Moderate warmup - drive JIT to optimize REAL workload
+    print("Warmup (500 iterations at depth 2)...")
+    for i in range(500):
         perft(board, 2)
-        if i % 500 == 0:
-            print(f"  {i}/2000...")
+        if i % 100 == 0 and i > 0:
+            print(f"  {i}/500...")
     
     # Test at progressively deeper depths
     print("\nTesting steady-state performance:")
@@ -138,8 +138,8 @@ def test_kiwipete():
     board.setup_from_fen('r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -')
     
     # Warmup on this position
-    print("Warmup (1000 iterations at depth 2)...")
-    for _ in range(1000):
+    print("Warmup (200 iterations at depth 2)...")
+    for _ in range(200):
         perft(board, 2)
     
     # Test
