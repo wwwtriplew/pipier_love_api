@@ -1,0 +1,38 @@
+# COMPLETE TT AND ZOBRIST REMOVAL PLAN
+
+## Files to Modify
+
+### 1. src/chess_engine.py
+- Remove: zobrist_key attribute
+- Remove: zobrist imports
+- Remove: zobrist computation in setup_from_fen()
+- Remove: zobrist from make_move_state()/unmake_move_state()
+
+### 2. src/search.py
+- Remove: ALL repetition_stack parameters and usage
+- Remove: ALL tt.probe() and tt.store() calls (already protected with if tt)
+- Remove: TranspositionTable class entirely
+- Remove: TTEntry class
+- Simplify: Function signatures (no repetition_stack)
+
+### 3. src/move_execution.py
+- Remove: zobrist hash updates in make_move()
+- Remove: zobrist imports
+
+### 4. main.py
+- Already done: tt=None
+- Remove: repetition_stack = []
+
+### Files to KEEP UNCHANGED
+- src/opening_book.py (has own Polyglot zobrist - independent)
+- src/polyglot_constants.py (used by opening book)
+- src/zobrist_*.py files (can delete later, not imported if we remove usage)
+
+## Execution Order
+1. Remove repetition detection from search.py
+2. Remove zobrist from chess_engine.py
+3. Remove zobrist from move_execution.py
+4. Remove repetition_stack from main.py
+5. Test
+
+Let's do it.
