@@ -54,6 +54,147 @@ Overhead:                  18,758x slowdown  ❌ Should be ~50-100x, not 18,758x
 
 ---
 
+## ⚠️ VERIFICATION REQUIRED BEFORE FIX
+
+**Status:** HYPOTHESIS - Needs hard evidence before implementation
+
+### What We Know (Facts)
+1. ✅ PyPy JIT works: 333M ops/sec baseline (65x faster than CPython)
+2. ✅ evaluate() slow: 17.8k evals/sec (only 1.3x faster than CPython)
+3. ✅ Dict→tuple fix applied: MATERIAL_VALUES and PHASE_VALUES are tuples
+4. ✅ Huge gap: 18,758x slowdown vs expected ~50-100x
+
+### What We Think (Hypothesis)
+1. ❓ evaluate() method not JIT-compiled due to complexity
+2. ❓ Method calls + attribute access blocking optimization
+3. ❓ Inlining would enable JIT compilation
+
+### What We Must Prove (Tests Needed)
+
+#### Test 1: Verify JIT Compilation Status ⚠️ CRITICAL
+**Run on VPS:**
+```bash
+cd /root/pipier_love_api
+source venv/bin/activate
+python3 scripts/verify_jit_problem.py 2>&1 | tee jit_verification.log
+```
+
+**Expected Evidence:**
+- If JIT compiling: See "Tracing" and "Backend" messages for evaluate
+- If NOT compiling: No JIT messages for evaluate (PROVES hypothesis)
+
+**Interpretation:**
+- NO JIT messages → Hypothesis CONFIRMED, proceed with inline fix
+- YES JIT messages → Hypothesis WRONG, problem is elsewhere
+
+#### Test 2: Profile Method Call Overhead
+**Create test comparing:**
+```python
+# Version A: Method calls (current)
+def evaluate_with_methods(board):
+    phase = self._calculate_phase(board)
+    material = self._evaluate_material(board)
+    # ... more method calls
+    
+# Version B: Inlined (test)
+def evaluate_inlined(board):
+    # All logic in one function
+    # No method calls
+```
+
+**Measure:** If inlined is 5-10x faster → method calls are the bottleneck
+
+#### Test 3: Identify Slowest Methods
+**Profile which sub-methods take most time:**
+```python
+import time
+evaluator = Evaluator()
+board = ChessBoard()
+
+# Time each component
+t1 = time.perf_counter()
+for _ in range(100000):
+    evaluator._calculate_phase(board)
+print(f"_calculate_phase: {time.perf_counter() - t1:.3f}s")
+
+t2 = time.perf_counter()
+for _ in range(100000):
+    evaluator._evaluate_material(board)
+print(f"_evaluate_material: {time.perf_counter() - t2:.3f}s")
+
+# ... repeat for all methods
+```
+
+**Expected:** Identify which methods are slowest → prioritize those for inlining
+
+#### Test 4: Minimal Reproduction
+**Create simplest possible test case:**
+```python
+class SimpleEvaluator:
+    def evaluate_with_calls(self, x):
+        a = self._method1(x)
+        b = self._method2(x)
+        return a + b
+    
+    def _method1(self, x): return x * 2
+    def _method2(self, x): return x + 10
+
+class InlinedEvaluator:
+    def evaluate_inlined(self, x):
+        a = x * 2  # inlined _method1
+        b = x + 10  # inlined _method2
+        return a + b
+```
+
+**Test:** If inlined is significantly faster → PROVES method calls are the issue
+
+### Verification Checklist
+
+Before implementing ANY code changes:
+- [ ] Run Test 1 on VPS (verify_jit_problem.py)
+- [ ] Analyze PYPYLOG output - does JIT compile evaluate()?
+- [ ] Run Test 2 - compare method calls vs inlined
+- [ ] Run Test 3 - profile which methods are slowest
+- [ ] Run Test 4 - minimal reproduction case
+- [ ] Document all results in MASTER_FIX_PLAN.md
+- [ ] If ALL tests confirm hypothesis → proceed with fix
+- [ ] If ANY test contradicts hypothesis → investigate further
+
+### Decision Tree
+
+```
+Test 1: Is evaluate() JIT-compiled?
+├─ NO → Hypothesis CONFIRMED
+│   └─ Proceed to Test 2-4 for additional evidence
+│       └─ If Tests 2-4 also confirm → IMPLEMENT INLINE FIX
+│
+└─ YES → Hypothesis WRONG
+    └─ Stop! Problem is NOT method complexity
+        └─ Re-investigate:
+            ├─ Attribute access patterns?
+            ├─ Hash table operations?
+            ├─ Specific operations in sub-methods?
+            └─ Other PyPy JIT limiters?
+```
+
+### Risk Assessment
+
+**If we inline without verification:**
+- ❌ Might not fix the problem (wasted effort)
+- ❌ Harder to maintain (400+ line function)
+- ❌ Harder to debug
+- ❌ Might break existing functionality
+- ❌ No guarantee of improvement
+
+**If we verify first:**
+- ✅ Know exact problem before fixing
+- ✅ Can measure improvement accurately
+- ✅ Safer implementation
+- ✅ Better understanding for future optimization
+- ✅ Can try smaller, targeted fixes first
+
+---
+
 ## 1. SYSTEM ARCHITECTURE UNDERSTANDING
 
 ### 1.1 Repository Structure
