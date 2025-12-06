@@ -47,16 +47,16 @@ def test_rich_loop():
     # Warmup
     print("Warming up...")
     for _ in range(10):
-        loop(500000)
+        loop(50000)  # 50k iterations, not 500k
     
     # Test
     print("Testing...")
     t0 = time.perf_counter()
-    result = loop(50000000)
+    result = loop(5000000)  # 5M iterations, not 50M
     t1 = time.perf_counter()
     
     elapsed = t1 - t0
-    iters_per_sec = 50000000 / elapsed
+    iters_per_sec = 5000000 / elapsed
     
     print(f"Result: {result}")
     print(f"Elapsed: {elapsed:.3f}s")
