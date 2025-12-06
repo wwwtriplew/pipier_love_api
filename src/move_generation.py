@@ -32,17 +32,11 @@ Implementation Notes:
 
 from typing import List, Tuple, Optional
 
-try:  # Package import
-    from .magic_bitboards import pop_lsb, count_bits, get_lsb
-except ImportError:  # Standalone fallback
-    import os
-    import sys
-
-    _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-    if _SRC_DIR not in sys.path:
-        sys.path.append(_SRC_DIR)
-
-    from magic_bitboards import pop_lsb, count_bits, get_lsb  # type: ignore
+from .fast_ops import (
+    pop_lsb_fast as pop_lsb,
+    get_lsb_fast as get_lsb,
+    count_bits_fast as count_bits,
+)
 
 # Inline helpers for PyPy JIT optimization (NO imports - direct definitions)
 # These simple functions allow PyPy JIT to inline them completely

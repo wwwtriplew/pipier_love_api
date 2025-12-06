@@ -18,12 +18,15 @@ Chess engine implementation with bitboards and legal move generation.
 
 from typing import List, Tuple, Optional, Set
 
+from .fast_ops import (
+    pop_lsb_fast as pop_lsb,
+    get_lsb_fast as get_lsb,
+    count_bits_fast as count_bits,
+)
+
 from .magic_bitboards import (
     MagicBitboards,
     PreCalculatedAttacks,
-    pop_lsb,
-    get_lsb,
-    count_bits,
 )
 
 from .zobrist_keys import compute_pawn_hash
