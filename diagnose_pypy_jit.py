@@ -67,8 +67,20 @@ try:
         # This will fail if JIT is disabled
         import pypyjit
         print("   ✅ pypyjit module available")
-        pypyjit.set_param('trace_limit=200000')  # Increase trace limit
-        print("   ✅ Increased trace limit to 200000")
+        
+        # Try different trace limits (default is ~6000-10000)
+        # 200000 is TOO HIGH and causes TraceLimitTooHigh error
+        trace_limits = [20000, 50000, 100000]
+        for limit in trace_limits:
+            try:
+                pypyjit.set_param(f'trace_limit={limit}')
+                print(f"   ✅ JIT trace_limit set to {limit}")
+                break
+            except Exception as e:
+                print(f"   ⚠️  trace_limit={limit} failed: {type(e).__name__}")
+        else:
+            print("   ⚠️  Using default trace_limit (likely ~6000)")
+            
     except ImportError:
         print("   ❌ pypyjit module not available (JIT may be disabled)")
 except ImportError:
