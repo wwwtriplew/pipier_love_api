@@ -248,7 +248,12 @@ def test_jit_status():
     
     try:
         import __pypy__
-        print(f"   Backend: {__pypy__.jit_backend_name}")
+        # Try to get backend name if available
+        try:
+            backend = __pypy__.jit_backend_name
+            print(f"   Backend: {backend}")
+        except AttributeError:
+            print("   Backend: JIT enabled (backend name not available)")
         
         # Try to get JIT info
         try:

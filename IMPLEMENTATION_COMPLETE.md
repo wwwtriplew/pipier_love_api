@@ -50,11 +50,11 @@ git pull
 
 ### Step 2: Reinstall Dependencies
 ```bash
-# Remove python-chess completely
-pypy3 -m pip uninstall chess -y
+# Remove python-chess completely (use --break-system-packages if needed)
+pypy3 -m pip uninstall chess -y --break-system-packages
 
 # Reinstall clean dependencies
-pypy3 -m pip install -r requirements.txt --force-reinstall
+pypy3 -m pip install -r requirements.txt --break-system-packages
 ```
 
 ### Step 3: Restart Service
@@ -179,6 +179,30 @@ After deployment, you should see:
 ✅ No errors in systemd logs  
 
 ## Troubleshooting
+
+### If You Get "externally-managed-environment" Error
+
+**Error:**
+```
+error: externally-managed-environment
+```
+
+**Solution 1 (Quick):** Add `--break-system-packages` flag
+```bash
+pypy3 -m pip uninstall chess -y --break-system-packages
+pypy3 -m pip install -r requirements.txt --break-system-packages
+```
+
+**Solution 2 (Better):** Use virtual environment
+```bash
+pypy3 -m venv venv_pypy
+source venv_pypy/bin/activate
+pip install -r requirements.txt
+
+# Update systemd service
+sudo nano /etc/systemd/system/pipier_love_api.service
+# Change ExecStart to use: /root/pipier_love_api/venv_pypy/bin/uvicorn
+```
 
 ### If NPS Still Low
 1. Verify PyPy is actually running: `ps aux | grep pypy`
