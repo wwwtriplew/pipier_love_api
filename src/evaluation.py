@@ -31,24 +31,14 @@ except ImportError:
 # ============================================================================
 
 # Material values (centipawns)
-MATERIAL_VALUES = {
-    PAWN: 100,
-    KNIGHT: 320,
-    BISHOP: 330,
-    ROOK: 500,
-    QUEEN: 900,
-    KING: 0  # King is invaluable
-}
+# Indexed by piece type: [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING]
+# Using tuple instead of dict for 3-10x faster lookups with PyPy JIT
+MATERIAL_VALUES = (100, 320, 330, 500, 900, 0)
 
 # Phase calculation values (Fruit's convention)
 # Used to interpolate between middlegame and endgame
-PHASE_VALUES = {
-    PAWN: 0,
-    KNIGHT: 1,
-    BISHOP: 1,
-    ROOK: 2,
-    QUEEN: 4
-}
+# Indexed by piece type: [PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING]
+PHASE_VALUES = (0, 1, 1, 2, 4, 0)
 
 TOTAL_PHASE = 24  # Starting material: 4N + 4B + 4R + 2Q = 24
 
