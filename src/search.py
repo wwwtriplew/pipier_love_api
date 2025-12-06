@@ -1238,7 +1238,9 @@ def alpha_beta_root(board: ChessBoard, depth: int, alpha: int, beta: int,
     stats.nodes += 1
     
     # TT probe for hash move (ordering only, don't prune at root)
-    _, hash_move = tt.probe(board.zobrist_key, 0, 0, alpha, beta)
+    hash_move = None
+    if tt is not None:
+        _, hash_move = tt.probe(board.zobrist_key, 0, 0, alpha, beta)
     
     moves = board.generate_moves()
     if not moves:
@@ -1286,19 +1288,20 @@ def alpha_beta_root(board: ChessBoard, depth: int, alpha: int, beta: int,
             pv_moves_made += 1
             
             # Follow TT chain to build PV (max 20 moves to avoid infinite loops)
-            for _ in range(min(20, depth)):
-                _, tt_move = tt.probe(board.zobrist_key, 0, 0, -MATE_SCORE, MATE_SCORE)
-                if tt_move is None:
-                    break
-                
-                # CRITICAL: Validate move before making it
-                # If make_move returns False (illegal move), stop PV extraction
-                if board.make_move(*tt_move):
-                    pv_line.append(tt_move)
-                    pv_moves_made += 1
-                else:
-                    # Illegal move in TT (hash collision or stale entry) - stop here
-                    break
+            if tt is not None:
+                for _ in range(min(20, depth)):
+                    _, tt_move = tt.probe(board.zobrist_key, 0, 0, -MATE_SCORE, MATE_SCORE)
+                    if tt_move is None:
+                        break
+                    
+                    # CRITICAL: Validate move before making it
+                    # If make_move returns False (illegal move), stop PV extraction
+                    if board.make_move(*tt_move):
+                        pv_line.append(tt_move)
+                        pv_moves_made += 1
+                    else:
+                        # Illegal move in TT (hash collision or stale entry) - stop here
+                        break
             
             # Unmake only the moves we successfully made
             for _ in range(pv_moves_made):
