@@ -1026,10 +1026,12 @@ def alpha_beta(board: ChessBoard, depth: int, ply: int, alpha: int, beta: int,
     if repetition_stack.count(board.zobrist_key) >= 2:
         return 0  # Draw by repetition
     
-    # TT probe
-    tt_score, hash_move = tt.probe(board.zobrist_key, depth, ply, alpha, beta)
-    if tt_score is not None:
-        return tt_score
+    # TT probe (skip if TT is disabled)
+    hash_move = None
+    if tt is not None:
+        tt_score, hash_move = tt.probe(board.zobrist_key, depth, ply, alpha, beta)
+        if tt_score is not None:
+            return tt_score
     
     # Check extension: search deeper when in check (resolve forcing lines)
     in_check = board.in_check
@@ -1114,7 +1116,8 @@ def alpha_beta(board: ChessBoard, depth: int, ply: int, alpha: int, beta: int,
             orderer.update_history(move, depth, board.side_to_move)
             
             # Store in TT with LOWERBOUND: store the actual cutoff move and score (not best_move and not beta)
-            tt.store(board.zobrist_key, depth, score, TT_LOWERBOUND, move, ply)
+            if tt is not None:
+                tt.store(board.zobrist_key, depth, score, TT_LOWERBOUND, move, ply)
             return beta
         
         if score > alpha:
@@ -1126,7 +1129,8 @@ def alpha_beta(board: ChessBoard, depth: int, ply: int, alpha: int, beta: int,
     else:
         flag = TT_EXACT  # PV node
     
-    tt.store(board.zobrist_key, depth, best_score, flag, best_move, ply)
+    if tt is not None:
+        tt.store(board.zobrist_key, depth, best_score, flag, best_move, ply)
     return best_score
 
 
@@ -1270,7 +1274,8 @@ def alpha_beta_root(board: ChessBoard, depth: int, alpha: int, beta: int,
         flag = TT_EXACT
     else:
         flag = TT_UPPERBOUND
-    tt.store(board.zobrist_key, depth, best_score, flag, best_move, 0)
+    if tt is not None:
+        tt.store(board.zobrist_key, depth, best_score, flag, best_move, 0)
     
     # Extract full PV from TT by following the chain
     pv_line = []
