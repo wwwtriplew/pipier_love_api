@@ -62,9 +62,9 @@ class PolyglotZobrist:
     @staticmethod
     def _init_keys():
         """Initialize Polyglot Zobrist keys with standard seed."""
-        # Use the proven Polyglot random array from python-chess
+        # Use the proven Polyglot random array (pure Python implementation)
         # This ensures 100% compatibility with Polyglot books
-        import chess.polyglot
+        from .polyglot_constants import POLYGLOT_RANDOM_ARRAY
         
         keys = {}
         
@@ -76,16 +76,16 @@ class PolyglotZobrist:
             keys['pieces'].append([])
             for piece in range(12):
                 idx = piece * 64 + square
-                keys['pieces'][square].append(chess.polyglot.POLYGLOT_RANDOM_ARRAY[idx])
+                keys['pieces'][square].append(POLYGLOT_RANDOM_ARRAY[idx])
         
         # Castling keys [4]: WK, WQ, BK, BQ (indices 768-771)
-        keys['castling'] = [chess.polyglot.POLYGLOT_RANDOM_ARRAY[768 + i] for i in range(4)]
+        keys['castling'] = [POLYGLOT_RANDOM_ARRAY[768 + i] for i in range(4)]
         
         # En passant keys [8]: files a-h (indices 772-779)
-        keys['en_passant'] = [chess.polyglot.POLYGLOT_RANDOM_ARRAY[772 + i] for i in range(8)]
+        keys['en_passant'] = [POLYGLOT_RANDOM_ARRAY[772 + i] for i in range(8)]
         
         # Side to move key (index 780)
-        keys['side_to_move'] = chess.polyglot.POLYGLOT_RANDOM_ARRAY[780]
+        keys['side_to_move'] = POLYGLOT_RANDOM_ARRAY[780]
         
         return keys
     
