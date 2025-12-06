@@ -13,7 +13,12 @@ Expected results:
 
 import sys
 import time
-sys.path.insert(0, '/workspaces/pipier_love_api')
+import os
+
+# Add parent directory to path for imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+sys.path.insert(0, parent_dir)
 
 from src.chess_engine import ChessBoard
 from src.evaluation import Evaluator
