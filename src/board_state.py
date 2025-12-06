@@ -7,37 +7,17 @@ maintaining high performance through optimized low-level implementations.
 
 from typing import List, Tuple, Optional, Iterator
 
-try:  # Package import
-    from .chess_engine import (
-        ChessBoard,
-        WHITE,
-        BLACK,
-        PAWN,
-        KNIGHT,
-        BISHOP,
-        ROOK,
-        QUEEN,
-        KING,
-    )
-except ImportError:  # Standalone fallback
-    import os
-    import sys
-
-    _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-    if _SRC_DIR not in sys.path:
-        sys.path.append(_SRC_DIR)
-
-    from chess_engine import (  # type: ignore
-        ChessBoard,
-        WHITE,
-        BLACK,
-        PAWN,
-        KNIGHT,
-        BISHOP,
-        ROOK,
-        QUEEN,
-        KING,
-    )
+from .chess_engine import (
+    ChessBoard,
+    WHITE,
+    BLACK,
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING,
+)
 
 
 class Position:

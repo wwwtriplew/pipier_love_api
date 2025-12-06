@@ -8,10 +8,10 @@ import sys
 import time
 import os
 
-# Add src to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from board_state import Position
+from src.board_state import Position
 
 def benchmark_perft(depth=4):
     """Run a quick perft benchmark."""

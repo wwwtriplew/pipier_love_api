@@ -7,8 +7,11 @@ Run this first to verify opening book is working.
 import sys
 import os
 
-# Add src to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+# Add project root to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.opening_book import probe_book
+from src.chess_engine import ChessBoard
 
 def quick_test():
     """Quick test of opening book functionality."""
@@ -35,8 +38,8 @@ def quick_test():
     # Test 2: Import and load
     print("\n2. Loading opening book...")
     try:
-        from opening_book import get_default_book, probe_book, PolyglotZobrist
-        from chess_engine import ChessBoard
+        from src.opening_book import get_default_book, probe_book, PolyglotZobrist
+        from src.chess_engine import ChessBoard
         print("   ✅ Imports successful")
         
         book = get_default_book()
