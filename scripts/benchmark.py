@@ -27,9 +27,12 @@ def benchmark_perft(depth=4):
     print(f"Testing position: Starting position")
     print(f"Depth: {depth}")
     
-    # Warmup
-    print("\nWarming up...")
-    board.perft(2)
+    # Warmup (Aggressive for PyPy)
+    print("\nWarming up JIT (running perft(3) x 10)...")
+    warmup_start = time.time()
+    for _ in range(10):
+        board.perft(3)
+    print(f"Warmup complete in {time.time() - warmup_start:.3f}s")
     
     # Benchmark
     print(f"\nRunning perft({depth})...")
