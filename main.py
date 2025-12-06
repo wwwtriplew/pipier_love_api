@@ -129,10 +129,10 @@ async def calculate_move(request: MoveRequest):
         # ========================================
         # OPENING BOOK PROBE (fast path)
         # ========================================
-        # Only check opening book in early game (moves 1-13)
-        # After move 13, positions are rarely in book and checking wastes time
+        # Check custom book up to move 20 (deeper preparation lines)
+        # Then fallback to baron30.bin or search
         book_move = None
-        if board.fullmove_number <= 13:
+        if board.fullmove_number <= 20:
             # Try opening book first - instant response if position is in book
             # This avoids expensive search for known opening positions
             book_move = probe_book(board, randomize=True)

@@ -396,11 +396,14 @@ def get_default_book() -> Optional[OpeningBook]:
     """Get or create default opening book instance."""
     global _default_book
     if _default_book is None:
-        # Try standard locations
+        # Try standard locations with PRIORITY ORDER
+        # Custom Piper Love Black repertoire has highest priority
         book_paths = [
+            "openingbook/piperlove_black.bin",  # HIGHEST PRIORITY - Custom Caro-Kann
             "openingbook/baron343/baron30.bin",
             "openingbook/baron343/book.bin",
             "openingbook/book.bin",
+            "../openingbook/piperlove_black.bin",
             "../openingbook/baron343/baron30.bin",
             "../openingbook/baron343/book.bin",
             "../openingbook/book.bin",
@@ -410,6 +413,7 @@ def get_default_book() -> Optional[OpeningBook]:
             if os.path.exists(path):
                 _default_book = OpeningBook(path)
                 if _default_book.is_loaded():
+                    print(f"✓ Loaded opening book: {path}")
                     break
     
     return _default_book if _default_book and _default_book.is_loaded() else None

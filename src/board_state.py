@@ -112,7 +112,8 @@ class Position:
     
     def get_fen(self) -> str:
         """Get FEN string of current position."""
-        return self._board.get_fen()
+        # TODO: ChessBoard doesn't have get_fen() method yet
+        raise NotImplementedError("FEN export not implemented in ChessBoard")
     
     def perft(self, depth: int) -> int:
         """
