@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 # Try to import Cython-optimized functions
 try:
-    from bitboard_ops import (
+    from bitboard_ops import (  # type: ignore
         cy_pop_count, cy_get_lsb, cy_pop_lsb,
         cy_knight_attacks, cy_king_attacks,
         cy_white_pawn_attacks, cy_black_pawn_attacks

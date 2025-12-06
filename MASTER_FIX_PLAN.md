@@ -50,53 +50,99 @@ Overhead:                  18,758x slowdown  ❌ Should be ~50-100x, not 18,758x
 - **Expected**: 10-20x speedup (178k-356k evals/sec)
 - **Combined with dict→tuple**: Possibly 400k-600k evals/sec
 
-**See:** `REAL_BOTTLENECK_FOUND.md` for complete analysis
+**See:** `VERIFIED_ROOT_CAUSE.md` for complete test results and analysis
 
 ---
 
-## ⚠️ VERIFICATION REQUIRED BEFORE FIX
+## 🔬 COMPREHENSIVE PROFILING REQUIRED
 
-**Status:** HYPOTHESIS - Needs hard evidence before implementation
+**Status:** Evaluation profiled, but need COMPLETE picture
 
-### What We Know (Facts)
-1. ✅ PyPy JIT works: 333M ops/sec baseline (65x faster than CPython)
-2. ✅ evaluate() slow: 17.8k evals/sec (only 1.3x faster than CPython)
-3. ✅ Dict→tuple fix applied: MATERIAL_VALUES and PHASE_VALUES are tuples
-4. ✅ Huge gap: 18,758x slowdown vs expected ~50-100x
+### Why Full Profiling Matters
 
-### What We Think (Hypothesis)
-1. ❓ evaluate() method not JIT-compiled due to complexity
-2. ❓ Method calls + attribute access blocking optimization
-3. ❓ Inlining would enable JIT compilation
+A chess engine has 3 major components in the hot path:
+1. **Search algorithm** (alpha-beta, quiescence, transposition table)
+2. **Move generation** (legal move calculation, attack detection)
+3. **Evaluation** (position scoring)
 
-### What We Must Prove (Tests Needed)
+**Current knowledge:**
+- ✅ Evaluation: 19.3k evals/sec, _evaluate_mobility (44%) and _evaluate_king_safety (28%) are slow
+- ❓ Move generation: Unknown speed
+- ❓ Make/unmake moves: Unknown overhead
+- ❓ Search overhead: Unknown
+- ❓ Which component dominates total time?
 
-#### Test 1: Verify JIT Compilation Status ⚠️ CRITICAL
-**Run on VPS:**
-```bash
-cd /root/pipier_love_api
-source venv/bin/activate
-python3 scripts/verify_jit_problem.py 2>&1 | tee jit_verification.log
+### The Missing Piece
+
+**We've profiled evaluation in isolation, but:**
+- How much time does search spend in evaluation vs move generation?
+- Is move generation the actual bottleneck?
+- Is make/unmake taking more time than we think?
+- Could search overhead (TT lookups, move ordering) be the issue?
+
+**Example scenario:**
+- If move generation takes 60% of search time
+- And evaluation takes 30% of search time
+- Then optimizing evaluation only gives 30% improvement
+- **We'd be focusing on the wrong thing!**
+
+### Test 4: Complete Hot Path Profile
+
+**File:** `scripts/test_complete_profile.py`  
+**What it tests:**
+1. Move generation speed (generate_moves)
+2. Make/unmake move overhead
+3. Evaluation speed (already know this)
+4. Alpha-beta search at depth 3
+5. Perft (pure move generation benchmark)
+
+**Critical questions answered:**
+- What % of search time is spent in each component?
+- Is the API bottleneck in search, movegen, or eval?
+- Where should we focus optimization effort?
+
+---
+
+## ✅ VERIFICATION RESULTS - EVALUATION ONLY
+
+**Status:** PARTIAL - Evaluation profiled, search/movegen pending
+
+### Verification Results (December 6, 2025)
+
+#### ✅ Test 2: Method Call Overhead - **HYPOTHESIS REFUTED**
+**Run on VPS (PyPy 3.9.18):**
+```
+Method calls:  76,746 evals/sec
+Inlined:       80,338 evals/sec
+Speedup:       1.05x (only 5% improvement)
 ```
 
-**Expected Evidence:**
-- If JIT compiling: See "Tracing" and "Backend" messages for evaluate
-- If NOT compiling: No JIT messages for evaluate (PROVES hypothesis)
+**Conclusion:** ❌ **Method calls are NOT the bottleneck**
 
-**Interpretation:**
-- NO JIT messages → Hypothesis CONFIRMED, proceed with inline fix
-- YES JIT messages → Hypothesis WRONG, problem is elsewhere
+#### ✅ Test 3: Evaluation Profiling - **REAL BOTTLENECK FOUND**
+**Individual method speeds:**
+```
+_evaluate_psqt:        878,388 calls/sec (1.14 μs/call)   ← FAST ✅
+_calculate_phase:      169,686 calls/sec (5.89 μs/call)   ← FAST ✅
+_evaluate_material:    135,590 calls/sec (7.38 μs/call)   ← OK
+_evaluate_king_safety:  69,474 calls/sec (14.39 μs/call)  ← SLOW ⚠️
+_evaluate_mobility:     43,440 calls/sec (23.02 μs/call)  ← VERY SLOW ❌
+```
 
-#### Test 2: Profile Method Call Overhead
-**Create test comparing:**
-```python
-# Version A: Method calls (current)
-def evaluate_with_methods(board):
-    phase = self._calculate_phase(board)
-    material = self._evaluate_material(board)
-    # ... more method calls
-    
-# Version B: Inlined (test)
+**Full evaluate() speed:** 19,258 evals/sec (51.93 μs/call)
+
+**Time breakdown within evaluation:**
+- _evaluate_mobility: **44.3%** of eval time ← PRIMARY BOTTLENECK
+- _evaluate_king_safety: **27.7%** of eval time ← SECONDARY BOTTLENECK  
+- _evaluate_material: 14.2% of eval time
+- _calculate_phase: 11.3% of eval time
+- _evaluate_psqt: 2.2% of eval time
+
+**Key findings:**
+1. ✅ PyPy JIT IS working (878k calls/sec for _evaluate_psqt)
+2. ✅ Simple methods are fast
+3. ❌ Mobility and king safety consume 72% of evaluation time
+4. ❌ Likely due to magic bitboard lookups (get_rook_attacks, get_bishop_attacks)
 def evaluate_inlined(board):
     # All logic in one function
     # No method calls
