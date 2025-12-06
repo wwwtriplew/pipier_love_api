@@ -49,24 +49,20 @@ except ImportError:  # Standalone fallback
 # Direct function calls enable JIT inlining for 10x+ speedup
 # The functions in magic_bitboards are already optimized for PyPy
 
-# Inline helpers for PyPy JIT (avoid function call overhead)
-# These are inlined directly instead of imported to enable JIT optimization
-_WHITE_PROMO_RANK = frozenset(range(56, 64))
-_BLACK_PROMO_RANK = frozenset(range(0, 8))
-_WHITE_DOUBLE_RANK = frozenset(range(8, 16))
-_BLACK_DOUBLE_RANK = frozenset(range(48, 56))
-
+# Inline helpers for PyPy JIT - use simple bitwise ops (fastest)
 def get_bit(sq: int) -> int:
     """Inline bit position helper."""
     return 1 << sq
 
 def is_promotion_square_lookup(sq: int, side: int) -> bool:
-    """Inline promotion check."""
-    return sq in (_WHITE_PROMO_RANK if side == 0 else _BLACK_PROMO_RANK)
+    """Inline promotion check using bitwise ops."""
+    # White: rank 8 (squares 56-63), Black: rank 1 (squares 0-7)
+    return (sq >= 56) if side == 0 else (sq < 8)
 
 def can_double_push(sq: int, side: int) -> bool:
-    """Inline double push check."""
-    return sq in (_WHITE_DOUBLE_RANK if side == 0 else _BLACK_DOUBLE_RANK)
+    """Inline double push check using bitwise ops."""
+    # White: rank 2 (squares 8-15), Black: rank 7 (squares 48-55)
+    return (8 <= sq < 16) if side == 0 else (48 <= sq < 56)
 
 def get_pawn_single_push(sq: int, side: int) -> int:
     """Inline single push."""

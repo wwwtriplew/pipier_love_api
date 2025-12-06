@@ -22,9 +22,9 @@ try:  # Support package imports
     from .magic_bitboards import (
         MagicBitboards,
         PreCalculatedAttacks,
-        pop_lsb as _pop_lsb_orig,
-        get_lsb as _get_lsb_orig,
-        count_bits as _count_bits_orig,
+        pop_lsb,
+        get_lsb,
+        count_bits,
     )
 except ImportError:  # Fallback when run as a standalone module
     import os
@@ -37,9 +37,9 @@ except ImportError:  # Fallback when run as a standalone module
     from magic_bitboards import (  # type: ignore
         MagicBitboards,
         PreCalculatedAttacks,
-        pop_lsb as _pop_lsb_orig,
-        get_lsb as _get_lsb_orig,
-        count_bits as _count_bits_orig,
+        pop_lsb,
+        get_lsb,
+        count_bits,
     )
 
 try:
@@ -48,13 +48,6 @@ try:
 except ImportError:  # pragma: no cover - fallback for standalone execution
     from zobrist_keys import compute_pawn_hash  # type: ignore
     from zobrist_full import compute_full_hash  # type: ignore
-
-# CRITICAL: Direct function names (no reassignment) for PyPy JIT optimization
-# PyPy JIT cannot optimize through dynamic function references!
-# We use the _orig versions directly to enable JIT inlining
-pop_lsb = _pop_lsb_orig
-get_lsb = _get_lsb_orig
-count_bits = _count_bits_orig
 
 # Piece constants (must be defined before importing move_generation to avoid circular import)
 WHITE = 0
