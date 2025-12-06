@@ -1445,7 +1445,8 @@ def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
     """
     # === 1. Initialization ===
     stats.reset()
-    tt.next_age()
+    if tt is not None:
+        tt.next_age()
     orderer.clear_killers()
     orderer.age_history()
     repetition_stack: List[int] = []
@@ -1615,21 +1616,31 @@ class SearchEngine:
     
     def clear_tt(self):
         """Clear transposition table."""
-        self.tt.clear()
+        if self.tt is not None:
+            self.tt.clear()
     
     def get_stats(self) -> Dict:
         """Get comprehensive search statistics."""
         # Calculate TT hit rate directly from TT stats
-        total_tt_lookups = self.tt.hits + self.tt.misses
-        tt_hit_rate = (self.tt.hits / total_tt_lookups * 100) if total_tt_lookups > 0 else 0.0
+        if self.tt is not None:
+            total_tt_lookups = self.tt.hits + self.tt.misses
+            tt_hit_rate = (self.tt.hits / total_tt_lookups * 100) if total_tt_lookups > 0 else 0.0
+            tt_hits = self.tt.hits
+            tt_usable_hits = self.tt.usable_hits
+            tt_misses = self.tt.misses
+        else:
+            tt_hit_rate = 0.0
+            tt_hits = 0
+            tt_usable_hits = 0
+            tt_misses = 0
         
         return {
             'nodes': self.stats.nodes,
             'q_nodes': self.stats.q_nodes,
             'nps': self.stats.nps(),
-            'tt_hits': self.tt.hits,
-            'tt_usable_hits': self.tt.usable_hits,
-            'tt_misses': self.tt.misses,
+            'tt_hits': tt_hits,
+            'tt_usable_hits': tt_usable_hits,
+            'tt_misses': tt_misses,
             'tt_hit_rate': tt_hit_rate,
             'beta_cutoffs': self.stats.beta_cutoffs,
             'first_move_cutoffs': self.stats.first_move_cutoffs,
