@@ -18,36 +18,16 @@ Chess engine implementation with bitboards and legal move generation.
 
 from typing import List, Tuple, Optional, Set
 
-try:  # Support package imports
-    from .magic_bitboards import (
-        MagicBitboards,
-        PreCalculatedAttacks,
-        pop_lsb,  # Direct import - NO reassignment for PyPy JIT
-        get_lsb,  # Direct import - NO reassignment for PyPy JIT
-        count_bits,  # Direct import - NO reassignment for PyPy JIT
-    )
-except ImportError:  # Fallback when run as a standalone module
-    import os
-    import sys
+from .magic_bitboards import (
+    MagicBitboards,
+    PreCalculatedAttacks,
+    pop_lsb,
+    get_lsb,
+    count_bits,
+)
 
-    _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-    if _SRC_DIR not in sys.path:
-        sys.path.append(_SRC_DIR)
-
-    from magic_bitboards import (  # type: ignore
-        MagicBitboards,
-        PreCalculatedAttacks,
-        pop_lsb,
-        get_lsb,
-        count_bits,
-    )
-
-try:
-    from .zobrist_keys import compute_pawn_hash
-    from .zobrist_full import compute_full_hash
-except ImportError:  # pragma: no cover - fallback for standalone execution
-    from zobrist_keys import compute_pawn_hash  # type: ignore
-    from zobrist_full import compute_full_hash  # type: ignore
+from .zobrist_keys import compute_pawn_hash
+from .zobrist_full import compute_full_hash
 
 # Piece constants (must be defined before importing move_generation to avoid circular import)
 WHITE = 0
