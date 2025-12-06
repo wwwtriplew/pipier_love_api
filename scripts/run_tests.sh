@@ -9,6 +9,10 @@ echo ""
 echo "Book file: openingbook/baron343/baron30.bin"
 echo ""
 
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR"
+
 # Test 1: Quick Test
 echo "=================================================================="
 echo "  STEP 1: Quick Verification (30 seconds)"
