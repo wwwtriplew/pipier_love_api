@@ -51,7 +51,6 @@ def run_search(board, time_ms, tt, name):
         'nodes': stats.nodes,
         'time_ms': int(elapsed * 1000),
         'nps': int(stats.nodes / elapsed) if elapsed > 0 else 0,
-        'tt_size': tt.size_mb if tt else 0,
     }
 
 def main():
