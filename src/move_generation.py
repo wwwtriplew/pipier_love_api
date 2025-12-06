@@ -44,34 +44,32 @@ except ImportError:  # Standalone fallback
 
     from magic_bitboards import pop_lsb, count_bits, get_lsb  # type: ignore
 
-# Import ultra-fast inline operations
-try:
-    from .fast_ops import (
-        pop_lsb_fast,
-        get_lsb_fast,
-        count_bits_fast,
-        get_bit,
-        get_pawn_single_push,
-        get_pawn_double_push,
-        is_promotion_square_lookup,
-        can_double_push,
-    )
-except ImportError:  # pragma: no cover - fallback for standalone execution
-    from fast_ops import (  # type: ignore
-        pop_lsb_fast,
-        get_lsb_fast,
-        count_bits_fast,
-        get_bit,
-        get_pawn_single_push,
-        get_pawn_double_push,
-        is_promotion_square_lookup,
-        can_double_push,
-    )
+# Inline helpers for PyPy JIT optimization (NO imports - direct definitions)
+# These simple functions allow PyPy JIT to inline them completely
+_WHITE_PROMO_RANK = frozenset(range(56, 64))  # Rank 8
+_BLACK_PROMO_RANK = frozenset(range(0, 8))    # Rank 1
+_WHITE_DOUBLE_RANK = frozenset(range(8, 16))  # Rank 2
+_BLACK_DOUBLE_RANK = frozenset(range(48, 56)) # Rank 7
 
-# Use fastest available version
-pop_lsb = pop_lsb_fast
-get_lsb = get_lsb_fast  
-count_bits = count_bits_fast
+def get_bit(sq: int) -> int:
+    """Get bitboard with single bit set at square."""
+    return 1 << sq
+
+def is_promotion_square_lookup(sq: int, side: int) -> bool:
+    """Check if square is a promotion square for given side."""
+    return sq in (_WHITE_PROMO_RANK if side == 0 else _BLACK_PROMO_RANK)
+
+def can_double_push(sq: int, side: int) -> bool:
+    """Check if pawn on square can make a double push."""
+    return sq in (_WHITE_DOUBLE_RANK if side == 0 else _BLACK_DOUBLE_RANK)
+
+def get_pawn_single_push(sq: int, side: int) -> int:
+    """Get destination square for single pawn push."""
+    return sq + 8 if side == 0 else sq - 8
+
+def get_pawn_double_push(sq: int, side: int) -> int:
+    """Get destination square for double pawn push."""
+    return sq + 16 if side == 0 else sq - 16
 
 # Import constants
 try:
