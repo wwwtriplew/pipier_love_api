@@ -2,7 +2,55 @@
 
 **Date:** December 6, 2025  
 **Target:** Fix VPS performance from 27k NPS → 200k+ NPS (8x improvement)  
-**Current Status:** Investigation phase - root causes identified
+**Current Status:** ❗ CRITICAL ROOT CAUSE FOUND - evaluate() method not JIT-compiled  
+**Last Updated:** After VPS test showing 17.8k evals/sec (PyPy) vs 13.6k (CPython)
+
+---
+
+## 🚨 CRITICAL FINDINGS (December 6, 2025)
+
+### VPS Test Results Reveal Real Bottleneck
+
+**Performance Test on PyPy 3.9.18:**
+```
+Baseline (array):      333,635,240 ops/sec  ✅ PyPy JIT working perfectly (65x faster than CPython)
+Evaluation (static):        17,786 evals/sec  ❌ PyPy JIT NOT working (only 1.3x faster than CPython)
+Overhead:                  18,758x slowdown  ❌ Should be ~50-100x, not 18,758x
+```
+
+### Root Cause: Method Complexity, Not Dict Lookups
+
+1. **Baseline proves PyPy JIT works**: 333M ops/sec is 65x faster than CPython
+2. **Evaluation proves JIT doesn't compile it**: 17.8k is only 1.3x faster than CPython
+3. **Dict→tuple fix was correct but insufficient**: Tuples help, but method still not JIT-compiled
+
+### The Real Problem
+
+`Evaluator.evaluate()` is **TOO COMPLEX** for PyPy JIT:
+- 8+ method calls (_calculate_phase, _evaluate_material, _evaluate_psqt, _evaluate_pawn_structure, _evaluate_king_safety, _evaluate_mobility)
+- 10+ attribute accesses (self.pawn_hash_table, board.pawn_hash, board.side_to_move, etc.)
+- Complex control flow (cache hit/miss branches, tempo bonus conditionals)
+- Hash table lookups (pawn_hash_table.probe/store)
+
+**PyPy JIT refuses to compile functions** with this level of complexity.
+
+### Why Dict→Tuple Didn't Fix It
+
+- Dict lookups: 62k ops/sec → Tuple indexing: 217k ops/sec (3.48x improvement) ✅
+- But this speedup is **ONLY if JIT compiles the function**
+- Since JIT doesn't compile evaluate(): tuples run interpreted (~18k ops/sec)
+- **Interpreted tuples ≈ Interpreted dicts** (both slow without JIT)
+
+### The Fix
+
+**Inline hot path methods into single evaluate() function:**
+- Remove method calls by inlining _calculate_phase, _evaluate_material
+- Reduce attribute access
+- Simplify control flow
+- **Expected**: 10-20x speedup (178k-356k evals/sec)
+- **Combined with dict→tuple**: Possibly 400k-600k evals/sec
+
+**See:** `REAL_BOTTLENECK_FOUND.md` for complete analysis
 
 ---
 
