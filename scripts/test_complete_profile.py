@@ -16,7 +16,7 @@ sys.path.insert(0, parent_dir)
 
 from src.chess_engine import ChessBoard
 from src.evaluation import Evaluator
-from src.search import alpha_beta
+from src.search import alpha_beta, SearchStats, TranspositionTable, MoveOrderer
 
 print("=" * 80)
 print("TEST 4: COMPLETE ENGINE HOT PATH PROFILING")
@@ -25,11 +25,16 @@ print()
 
 board = ChessBoard()
 evaluator = Evaluator()
+tt = TranspositionTable(size_mb=64)
+orderer = MoveOrderer()
 
 # Warmup
 print("Warming up...")
 for _ in range(100):
-    alpha_beta(board, 3, -999999, 999999, evaluator, None, None, None)
+    stats = SearchStats()
+    pv_line = []
+    repetition_stack = []
+    alpha_beta(board, 3, 0, -999999, 999999, evaluator, tt, orderer, stats, pv_line, repetition_stack)
 print()
 
 # ============================================================================
@@ -101,7 +106,7 @@ print(f"Per-call: {eval_time:.2f} μs")
 print()
 
 # ============================================================================
-# Component 4: Alpha-Beta Search (depth 3)
+# Component 4: Alpha-Beta Search (Depth 3)
 # ============================================================================
 print("Component 4: Alpha-Beta Search (Depth 3)")
 print("-" * 80)
@@ -111,8 +116,14 @@ nodes_searched = 0
 
 start = time.perf_counter()
 for _ in range(iterations):
-    score, nodes = alpha_beta(board, 3, -999999, 999999, evaluator, None, None, None)
-    nodes_searched += nodes
+    # Clear TT between searches to avoid caching
+    tt = TranspositionTable(size_mb=64)
+    orderer = MoveOrderer()
+    stats = SearchStats()
+    pv_line = []
+    repetition_stack = []
+    score = alpha_beta(board, 3, 0, -999999, 999999, evaluator, tt, orderer, stats, pv_line, repetition_stack)
+    nodes_searched += stats.nodes
 elapsed = time.perf_counter() - start
 
 search_speed = iterations / elapsed
