@@ -44,33 +44,34 @@ except ImportError:  # Standalone fallback
 
     from magic_bitboards import pop_lsb, count_bits, get_lsb  # type: ignore
 
-# CRITICAL: Use direct imports from magic_bitboards (not fast_ops)
-# PyPy JIT cannot optimize through dynamic function references!
-# Direct function calls enable JIT inlining for 10x+ speedup
-# The functions in magic_bitboards are already optimized for PyPy
+# Import ultra-fast inline operations
+try:
+    from .fast_ops import (
+        pop_lsb_fast,
+        get_lsb_fast,
+        count_bits_fast,
+        get_bit,
+        get_pawn_single_push,
+        get_pawn_double_push,
+        is_promotion_square_lookup,
+        can_double_push,
+    )
+except ImportError:  # pragma: no cover - fallback for standalone execution
+    from fast_ops import (  # type: ignore
+        pop_lsb_fast,
+        get_lsb_fast,
+        count_bits_fast,
+        get_bit,
+        get_pawn_single_push,
+        get_pawn_double_push,
+        is_promotion_square_lookup,
+        can_double_push,
+    )
 
-# Inline helpers for PyPy JIT - use simple bitwise ops (fastest)
-def get_bit(sq: int) -> int:
-    """Inline bit position helper."""
-    return 1 << sq
-
-def is_promotion_square_lookup(sq: int, side: int) -> bool:
-    """Inline promotion check using bitwise ops."""
-    # White: rank 8 (squares 56-63), Black: rank 1 (squares 0-7)
-    return (sq >= 56) if side == 0 else (sq < 8)
-
-def can_double_push(sq: int, side: int) -> bool:
-    """Inline double push check using bitwise ops."""
-    # White: rank 2 (squares 8-15), Black: rank 7 (squares 48-55)
-    return (8 <= sq < 16) if side == 0 else (48 <= sq < 56)
-
-def get_pawn_single_push(sq: int, side: int) -> int:
-    """Inline single push."""
-    return (sq + 8 if sq < 56 else -1) if side == 0 else (sq - 8 if sq >= 8 else -1)
-
-def get_pawn_double_push(sq: int, side: int) -> int:
-    """Inline double push."""
-    return (sq + 16 if 8 <= sq < 16 else -1) if side == 0 else (sq - 16 if 48 <= sq < 56 else -1)
+# Use fastest available version
+pop_lsb = pop_lsb_fast
+get_lsb = get_lsb_fast  
+count_bits = count_bits_fast
 
 # Import constants
 try:
