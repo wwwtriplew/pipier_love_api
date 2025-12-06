@@ -18,11 +18,11 @@ import time
 try:
     from .chess_engine import ChessBoard, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
     from .evaluation import Evaluator, MATERIAL_VALUES
-    from .fast_ops import fast_get_lsb as get_lsb
+    from .magic_bitboards import get_lsb
 except ImportError:
     from chess_engine import ChessBoard, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING  # type: ignore
     from evaluation import Evaluator, MATERIAL_VALUES  # type: ignore
-    from fast_ops import fast_get_lsb as get_lsb  # type: ignore
+    from magic_bitboards import get_lsb  # type: ignore
 
 
 # ============================================================================

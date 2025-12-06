@@ -15,8 +15,7 @@ from typing import Tuple, Optional
 
 try:
     from .chess_engine import ChessBoard, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
-    from .fast_ops import count_bits_fast as popcount
-    from .magic_bitboards import MagicBitboards, PreCalculatedAttacks
+    from .magic_bitboards import MagicBitboards, PreCalculatedAttacks, count_bits as popcount
 except ImportError:
     import os
     import sys
@@ -24,8 +23,7 @@ except ImportError:
     if _SRC_DIR not in sys.path:
         sys.path.append(_SRC_DIR)
     from chess_engine import ChessBoard, WHITE, BLACK, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING  # type: ignore
-    from fast_ops import count_bits_fast as popcount  # type: ignore
-    from magic_bitboards import MagicBitboards, PreCalculatedAttacks  # type: ignore
+    from magic_bitboards import MagicBitboards, PreCalculatedAttacks, count_bits as popcount  # type: ignore
 
 
 # ============================================================================

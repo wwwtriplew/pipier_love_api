@@ -28,10 +28,11 @@ from .move_generation import (
     generate_all_legal_moves
 )
 
-# Fast operations (for optimization)
-from .fast_ops import (
-    pop_lsb_fast, get_lsb_fast, count_bits_fast,
-    FastBitboard
+# Fast bitboard operations from magic_bitboards (direct imports for PyPy JIT)
+from .magic_bitboards import (
+    pop_lsb as pop_lsb_fast,
+    get_lsb as get_lsb_fast,
+    count_bits as count_bits_fast,
 )
 
 __version__ = '1.0.0'
@@ -50,6 +51,6 @@ __all__ = [
     'generate_bishop_moves', 'generate_rook_moves', 'generate_queen_moves',
     'generate_all_legal_moves',
     
-    # Fast operations
-    'pop_lsb_fast', 'get_lsb_fast', 'count_bits_fast', 'FastBitboard',
+    # Fast operations (direct from magic_bitboards for PyPy JIT)
+    'pop_lsb_fast', 'get_lsb_fast', 'count_bits_fast',
 ]
