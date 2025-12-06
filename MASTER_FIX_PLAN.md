@@ -2,110 +2,83 @@
 
 **Date:** December 6, 2025  
 **Target:** Fix VPS performance from 27k NPS → 200k+ NPS (8x improvement)  
-**Current Status:** ❗ CRITICAL ROOT CAUSE FOUND - evaluate() method not JIT-compiled  
-**Last Updated:** After VPS test showing 17.8k evals/sec (PyPy) vs 13.6k (CPython)
+**Current Status:** 🚨 **CRITICAL - SEARCH OVERHEAD IS THE BOTTLENECK (70%)**  
+**Last Updated:** After Test 4 complete profiling showing search overhead dominates
 
 ---
 
-## 🚨 CRITICAL FINDINGS (December 6, 2025)
+## 🚨 BREAKTHROUGH DISCOVERY (December 6, 2025 - Test 4 Results)
 
-### VPS Test Results Reveal Real Bottleneck
+### Complete Engine Profiling Reveals Shocking Truth
 
-**Performance Test on PyPy 3.9.18:**
+**VPS Test 4 Results (PyPy 3.9.18):**
 ```
-Baseline (array):      333,635,240 ops/sec  ✅ PyPy JIT working perfectly (65x faster than CPython)
-Evaluation (static):        17,786 evals/sec  ❌ PyPy JIT NOT working (only 1.3x faster than CPython)
-Overhead:                  18,758x slowdown  ❌ Should be ~50-100x, not 18,758x
+Component               Speed            Time/Op       % of Search Time
+─────────────────────────────────────────────────────────────────────
+Move generation:        158,902/s        6.29 μs      1.1%  ✅ FAST
+Make/unmake:            306,231/s        3.27 μs      1.7%  ✅ FAST
+Evaluation:              18,856/s       53.03 μs     27.0%  ⚠️ SLOW
+Search overhead:              —             —        70.3%  ❌❌❌ BOTTLENECK
+─────────────────────────────────────────────────────────────────────
+Alpha-beta (depth 3):         4.41/s   226.82 ms    100.0%
+NPS (search):                5,083 nodes/sec
+Perft (movegen only):       39,276 NPS
 ```
 
-### Root Cause: Method Complexity, Not Dict Lookups
+### The Real Bottleneck: NOT Evaluation
 
-1. **Baseline proves PyPy JIT works**: 333M ops/sec is 65x faster than CPython
-2. **Evaluation proves JIT doesn't compile it**: 17.8k is only 1.3x faster than CPython
-3. **Dict→tuple fix was correct but insufficient**: Tuples help, but method still not JIT-compiled
+**For a depth-3 search (1,153 nodes, 226.82 ms):**
+```
+Search overhead:     159.49 ms  (70.3%)  ← PRIMARY BOTTLENECK ❌❌❌
+Evaluation:           61.15 ms  (27.0%)  ← SECONDARY BOTTLENECK ⚠️
+Make/unmake:           3.77 ms  ( 1.7%)  ✅
+Move generation:       2.42 ms  ( 1.1%)  ✅
+```
 
-### The Real Problem
+### Critical Analysis
 
-`Evaluator.evaluate()` is **TOO COMPLEX** for PyPy JIT:
-- 8+ method calls (_calculate_phase, _evaluate_material, _evaluate_psqt, _evaluate_pawn_structure, _evaluate_king_safety, _evaluate_mobility)
-- 10+ attribute accesses (self.pawn_hash_table, board.pawn_hash, board.side_to_move, etc.)
-- Complex control flow (cache hit/miss branches, tempo bonus conditionals)
-- Hash table lookups (pawn_hash_table.probe/store)
+**Performance Gap:**
+- Current NPS: **5,083** nodes/sec
+- Target NPS: **200,000** nodes/sec  
+- **Gap: 39.3x slower than target** ❌
 
-**PyPy JIT refuses to compile functions** with this level of complexity.
+**What "Search Overhead" Means:**
+- Time spent in alpha_beta function EXCLUDING evaluation/movegen/make-unmake
+- Includes: TT probe/store, move ordering, PV line management, repetition detection
+- **70% of search time is infrastructure, not core chess operations**
 
-### Why Dict→Tuple Didn't Fix It
+### The Smoking Gun
 
-- Dict lookups: 62k ops/sec → Tuple indexing: 217k ops/sec (3.48x improvement) ✅
-- But this speedup is **ONLY if JIT compiles the function**
-- Since JIT doesn't compile evaluate(): tuples run interpreted (~18k ops/sec)
-- **Interpreted tuples ≈ Interpreted dicts** (both slow without JIT)
+**Perft vs Alpha-Beta comparison:**
+- Perft (pure movegen): 39,276 NPS
+- Alpha-beta (with search): 5,083 NPS
+- **Search infrastructure adds 7.7x overhead** ❌
 
-### The Fix
+**This proves:**
+1. Move generation is FAST (158k calls/sec)
+2. Make/unmake is FAST (306k cycles/sec)
+3. Evaluation is acceptable for PyPy interpreted (19k/sec)
+4. **The search infrastructure is killing performance**
 
-**Inline hot path methods into single evaluate() function:**
-- Remove method calls by inlining _calculate_phase, _evaluate_material
-- Reduce attribute access
-- Simplify control flow
-- **Expected**: 10-20x speedup (178k-356k evals/sec)
-- **Combined with dict→tuple**: Possibly 400k-600k evals/sec
+### Root Cause: Python Data Structures in Hot Path
 
-**See:** `VERIFIED_ROOT_CAUSE.md` for complete test results and analysis
+**Hypothesis:** The 70% overhead comes from:
+1. **Transposition Table operations** (creating TTEntry objects, list iterations)
+2. **MoveOrderer operations** (killer move arrays, history heuristic dicts)
+3. **PV line management** (list operations, copying)
+4. **Repetition stack** (list.count() on every node)
 
----
-
-## 🔬 COMPREHENSIVE PROFILING REQUIRED
-
-**Status:** Evaluation profiled, but need COMPLETE picture
-
-### Why Full Profiling Matters
-
-A chess engine has 3 major components in the hot path:
-1. **Search algorithm** (alpha-beta, quiescence, transposition table)
-2. **Move generation** (legal move calculation, attack detection)
-3. **Evaluation** (position scoring)
-
-**Current knowledge:**
-- ✅ Evaluation: 19.3k evals/sec, _evaluate_mobility (44%) and _evaluate_king_safety (28%) are slow
-- ❓ Move generation: Unknown speed
-- ❓ Make/unmake moves: Unknown overhead
-- ❓ Search overhead: Unknown
-- ❓ Which component dominates total time?
-
-### The Missing Piece
-
-**We've profiled evaluation in isolation, but:**
-- How much time does search spend in evaluation vs move generation?
-- Is move generation the actual bottleneck?
-- Is make/unmake taking more time than we think?
-- Could search overhead (TT lookups, move ordering) be the issue?
-
-**Example scenario:**
-- If move generation takes 60% of search time
-- And evaluation takes 30% of search time
-- Then optimizing evaluation only gives 30% improvement
-- **We'd be focusing on the wrong thing!**
-
-### Test 4: Complete Hot Path Profile
-
-**File:** `scripts/test_complete_profile.py`  
-**What it tests:**
-1. Move generation speed (generate_moves)
-2. Make/unmake move overhead
-3. Evaluation speed (already know this)
-4. Alpha-beta search at depth 3
-5. Perft (pure move generation benchmark)
-
-**Critical questions answered:**
-- What % of search time is spent in each component?
-- Is the API bottleneck in search, movegen, or eval?
-- Where should we focus optimization effort?
+**Why This Matters:**
+- These are Python object allocations and list/dict operations
+- PyPy JIT can't optimize away the overhead for complex objects
+- Every node in search (1,153 nodes) pays this penalty
+- **70% of time is spent manipulating Python data structures**
 
 ---
 
-## ✅ VERIFICATION RESULTS - EVALUATION ONLY
+## 🔬 COMPLETE PROFILING RESULTS
 
-**Status:** PARTIAL - Evaluation profiled, search/movegen pending
+**Status:** ✅ COMPLETE - All components profiled
 
 ### Verification Results (December 6, 2025)
 
@@ -174,70 +147,116 @@ print(f"_evaluate_material: {time.perf_counter() - t2:.3f}s")
 **Expected:** Identify which methods are slowest → prioritize those for inlining
 
 #### Test 4: Minimal Reproduction
-**Create simplest possible test case:**
-```python
-class SimpleEvaluator:
-    def evaluate_with_calls(self, x):
-        a = self._method1(x)
-        b = self._method2(x)
-        return a + b
-    
-    def _method1(self, x): return x * 2
-    def _method2(self, x): return x + 10
+### Test Results Summary
 
-class InlinedEvaluator:
-    def evaluate_inlined(self, x):
-        a = x * 2  # inlined _method1
-        b = x + 10  # inlined _method2
-        return a + b
+#### ✅ Test 2: Method Call Overhead - **HYPOTHESIS REFUTED**
+**Run on VPS (PyPy 3.9.18):**
+```
+Method calls:  76,746 evals/sec
+Inlined:       80,338 evals/sec
+Speedup:       1.05x (only 5% improvement)
+```
+**Conclusion:** ❌ **Method calls are NOT the bottleneck**
+
+#### ✅ Test 3: Evaluation Profiling - **MOBILITY/KING_SAFETY BOTTLENECK**
+**Individual method speeds:**
+```
+_evaluate_psqt:        878,388 calls/sec (1.14 μs/call)   ← FAST ✅
+_calculate_phase:      169,686 calls/sec (5.89 μs/call)   ← FAST ✅
+_evaluate_material:    135,590 calls/sec (7.38 μs/call)   ← OK
+_evaluate_king_safety:  69,474 calls/sec (14.39 μs/call)  ← SLOW ⚠️
+_evaluate_mobility:     43,440 calls/sec (23.02 μs/call)  ← VERY SLOW ❌
 ```
 
-**Test:** If inlined is significantly faster → PROVES method calls are the issue
+**Full evaluate() speed:** 19,258 evals/sec (51.93 μs/call)
 
-### Verification Checklist
+**Time breakdown within evaluation:**
+- _evaluate_mobility: **44.3%** of eval time
+- _evaluate_king_safety: **27.7%** of eval time
+- _evaluate_material: 14.2%
+- _calculate_phase: 11.3%
+- _evaluate_psqt: 2.2%
 
-Before implementing ANY code changes:
-- [ ] Run Test 1 on VPS (verify_jit_problem.py)
-- [ ] Analyze PYPYLOG output - does JIT compile evaluate()?
-- [ ] Run Test 2 - compare method calls vs inlined
-- [ ] Run Test 3 - profile which methods are slowest
-- [ ] Run Test 4 - minimal reproduction case
-- [ ] Document all results in MASTER_FIX_PLAN.md
-- [ ] If ALL tests confirm hypothesis → proceed with fix
-- [ ] If ANY test contradicts hypothesis → investigate further
-
-### Decision Tree
-
+#### ✅ Test 4: Complete Engine Profiling - **SEARCH OVERHEAD IS THE BOTTLENECK**
+**Run on VPS (PyPy 3.9.18):**
 ```
-Test 1: Is evaluate() JIT-compiled?
-├─ NO → Hypothesis CONFIRMED
-│   └─ Proceed to Test 2-4 for additional evidence
-│       └─ If Tests 2-4 also confirm → IMPLEMENT INLINE FIX
-│
-└─ YES → Hypothesis WRONG
-    └─ Stop! Problem is NOT method complexity
-        └─ Re-investigate:
-            ├─ Attribute access patterns?
-            ├─ Hash table operations?
-            ├─ Specific operations in sub-methods?
-            └─ Other PyPy JIT limiters?
+Component               Speed            Time/Op       % of Search
+────────────────────────────────────────────────────────────────────
+Move generation:        158,902/s        6.29 μs      1.1%  ✅
+Make/unmake:            306,231/s        3.27 μs      1.7%  ✅
+Evaluation:              18,856/s       53.03 μs     27.0%  ⚠️
+Search overhead:              —             —        70.3%  ❌❌❌
+────────────────────────────────────────────────────────────────────
+Alpha-beta (depth 3):         4.41/s   226.82 ms    100.0%
+NPS (search):                5,083 nodes/sec
+Perft (movegen):            39,276 NPS
 ```
 
-### Risk Assessment
+**Time breakdown for depth-3 search (1,153 nodes, 226.82 ms):**
+```
+Search overhead:     159.49 ms  (70.3%)  ← PRIMARY BOTTLENECK ❌❌❌
+Evaluation:           61.15 ms  (27.0%)  ← SECONDARY BOTTLENECK
+Make/unmake:           3.77 ms  ( 1.7%)  ✅ FAST
+Move generation:       2.42 ms  ( 1.1%)  ✅ FAST
+```
 
-**If we inline without verification:**
-- ❌ Might not fix the problem (wasted effort)
-- ❌ Harder to maintain (400+ line function)
-- ❌ Harder to debug
-- ❌ Might break existing functionality
-- ❌ No guarantee of improvement
+**Critical Finding:**
+- Perft (pure movegen): 39,276 NPS
+- Alpha-beta (with search): 5,083 NPS
+- **Search infrastructure adds 7.7x overhead** ❌
 
-**If we verify first:**
-- ✅ Know exact problem before fixing
-- ✅ Can measure improvement accurately
-- ✅ Safer implementation
-- ✅ Better understanding for future optimization
-- ✅ Can try smaller, targeted fixes first
+**Conclusion:** 
+1. ✅ Move generation is FAST (no optimization needed)
+2. ✅ Make/unmake is FAST (no optimization needed)
+3. ⚠️ Evaluation is acceptable but could be 2-3x faster
+4. ❌ **Search overhead (TT, move ordering, PV, repetition detection) is the PRIMARY bottleneck**
+
+---
+
+## 🎯 OPTIMIZATION STRATEGY (Updated After Test 4)
+
+### Priority 1: Fix Search Overhead (70% of time)
+
+**Target areas in search.py:**
+1. **TranspositionTable operations** (creating TTEntry objects, bucket searches)
+2. **MoveOrderer operations** (killer arrays, history heuristic)
+3. **PV line management** (list operations at every node)
+4. **Repetition detection** (repetition_stack.count() at every node)
+
+**Optimization approaches:**
+- Replace Python objects with primitive types where possible
+- Use numpy arrays instead of lists for killer/history tables
+- Simplify TT probe/store (fewer object allocations)
+- Cache repetition checks (zobrist_key → bool dict)
+- Profile with cProfile to find exact hotspots
+
+**Expected improvement:** 3-5x speedup → 15k-25k NPS
+
+### Priority 2: Optimize Evaluation (27% of time)
+
+**Already profiled - known bottlenecks:**
+- _evaluate_mobility (44% of eval time)
+- _evaluate_king_safety (28% of eval time)
+
+**Optimization approaches:**
+- Cache mobility results per position
+- Approximate king safety (fewer attack checks)
+- Simplify mobility calculation
+
+**Expected improvement:** 2-3x speedup → 40k-60k evals/sec
+
+### Combined Target
+
+**If both optimizations succeed:**
+- Search overhead: 159.49ms → 40ms (4x faster)
+- Evaluation: 61.15ms → 25ms (2.5x faster)
+- **Total search time: 226.82ms → 70ms (3.2x faster)**
+- **Target NPS: 5,083 → 16k-20k NPS**
+
+**Still short of 200k target, but closer. May need:**
+- Switch to CPython with C extensions
+- More aggressive simplifications
+- Algorithmic improvements (better pruning, move ordering)
 
 ---
 
@@ -293,79 +312,242 @@ HTTP Request → Uvicorn (port 8000)
 
 ---
 
-## 2. ROOT CAUSE ANALYSIS - CONFIRMED ISSUES
+## 2. ROOT CAUSE ANALYSIS - UPDATED AFTER TEST 4
 
-### 2.1 Primary Bottleneck: Dictionary Lookups in Hot Paths
-**Evidence:**
-- ✅ `find_jit_blockers.py` confirmed: `MATERIAL_VALUES` is a dict
-- ✅ Called millions of times per search (every evaluation × every node)
-- ✅ PyPy JIT cannot optimize dict lookups as well as array indexing
-- ✅ `test_dict_vs_array.py` shows X speedup (awaiting results)
+### 2.1 PRIMARY BOTTLENECK: Search Infrastructure (70% of time)
 
-**Location:**
+**Evidence from Test 4:**
+- Search overhead: 159.49 ms out of 226.82 ms total (70.3%)
+- Evaluation: 61.15 ms (27.0%)
+- Move generation: 2.42 ms (1.1%)
+- Make/unmake: 3.77 ms (1.7%)
+
+**What "Search Overhead" includes:**
+1. **TranspositionTable operations:**
+   - Creating TTEntry objects on every store
+   - Iterating through 4-bucket slots on every probe
+   - List operations: `self.table[bucket_idx]` is a Python list
+   
+2. **MoveOrderer operations:**
+   - 2D list for killer moves: `[[None, None] for _ in range(MAX_PLY)]`
+   - 3D list for history: `[[[0]*64 for _ in range(64)] for _ in range(2)]`
+   - List operations on every move ordering call
+   
+3. **PV line management:**
+   - List operations: `pv_line = []` created at every node
+   - List copying and appending
+   
+4. **Repetition detection:**
+   - `repetition_stack.count(zobrist_key)` on EVERY node
+   - O(n) operation called 1,153 times per search
+
+**Why This is Slow:**
+- Python list/object operations are expensive
+- PyPy JIT can't optimize away object allocation overhead
+- These operations happen at EVERY node (1,153 times per search)
+
+**Critical insight from Perft comparison:**
+- Perft (movegen only): 39,276 NPS
+- Alpha-beta (with search infra): 5,083 NPS
+- **Search infrastructure adds 7.7x overhead** ❌
+
+### 2.2 SECONDARY BOTTLENECK: Evaluation (27% of time)
+
+**Already profiled in Test 3:**
+- _evaluate_mobility: 44.3% of eval time (23.02 μs/call)
+- _evaluate_king_safety: 27.7% of eval time (14.39 μs/call)
+- These are slow due to magic bitboard attack lookups
+
+**Note:** Evaluation at 18,856/sec is acceptable for PyPy interpreted code.
+Optimizing search overhead is higher priority (70% vs 27%).
+
+### 2.3 NON-ISSUES (Test 4 confirmed these are FAST)
+
+- ✅ Move generation: 158,902 calls/sec (6.29 μs) - NO OPTIMIZATION NEEDED
+- ✅ Make/unmake: 306,231 cycles/sec (3.27 μs) - NO OPTIMIZATION NEEDED
+
+---
+
+## 3. OPTIMIZATION PLAN (Updated Based on Test 4)
+
+### Phase 1: Profile Search Infrastructure (IMMEDIATE)
+
+**Goal:** Identify which part of search overhead is slowest
+
+**Create profiling script:**
 ```python
-# src/evaluation.py line 29-35
-MATERIAL_VALUES = {
-    PAWN: 100,    # Indexed by piece type (0-5)
-    KNIGHT: 320,
-    BISHOP: 330,
-    ROOK: 500,
-    QUEEN: 900,
-    KING: 0
-}
+# scripts/profile_search_overhead.py
+import cProfile
+import pstats
+from src.search import alpha_beta, SearchStats, TranspositionTable, MoveOrderer
+from src.chess_engine import ChessBoard
+from src.evaluation import Evaluator
+
+board = ChessBoard()
+evaluator = Evaluator()
+tt = TranspositionTable(size_mb=64)
+orderer = MoveOrderer()
+
+def run_search():
+    for _ in range(100):
+        stats = SearchStats()
+        pv_line = []
+        repetition_stack = []
+        alpha_beta(board, 3, 0, -999999, 999999, evaluator, tt, orderer, 
+                  stats, pv_line, repetition_stack)
+
+profiler = cProfile.Profile()
+profiler.enable()
+run_search()
+profiler.disable()
+
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(30)  # Top 30 functions
 ```
 
-**Impact:** Called in `_evaluate_material()` (lines 733, 738)
+**Run on VPS:**
+```bash
+cd /root/pipier_love_api
+python3 scripts/profile_search_overhead.py 2>&1 | tee profile_results.txt
+```
 
-### 2.2 Secondary Issue: Large Functions Blocking JIT
-**Evidence:**
-- ✅ `alpha_beta`: 263 lines (threshold: ~200)
-- ✅ `iterative_deepening`: 245 lines
-- ✅ `quiescence`: 200 lines (borderline)
+**Look for:**
+- Time spent in `TranspositionTable.probe`
+- Time spent in `TranspositionTable.store`
+- Time spent in `MoveOrderer.order_moves`
+- Time spent in list operations (`repetition_stack.count`, etc.)
 
-**PyPy JIT Limitation:** Functions >200-250 lines with complex branching may not be JIT-compiled
+### Phase 2: Optimize Top Bottleneck (1-2 hours)
 
-### 2.3 Tertiary Issues
-- ⚠️  `PHASE_VALUES` also uses dict (lines 703-706)
-- ⚠️  Excessive attribute lookups in `Evaluator` methods
-- ⚠️  Potential method call overhead vs inlined operations
+**Option A: If TT operations are slowest (likely):**
+
+**Problem:** Creating TTEntry objects repeatedly
+```python
+# Current (slow):
+class TTEntry:
+    def __init__(self, zobrist_key, depth, score, flag, best_move, age, key16):
+        self.zobrist_key = zobrist_key
+        # ... etc
+```
+
+**Solution:** Use tuples or numpy arrays
+```python
+# Fast: TTEntry as tuple (immutable, faster)
+TTEntry = namedtuple('TTEntry', ['zobrist_key', 'depth', 'score', 'flag', 
+                                  'best_move', 'age', 'key16'])
+
+# Or even faster: store as numpy array
+import numpy as np
+self.table = np.zeros((num_buckets, 4, 7), dtype=np.int64)
+# [zobrist_key, depth, score, flag, move_from, move_to, age]
+```
+
+**Option B: If repetition detection is slowest:**
+
+**Problem:** `repetition_stack.count(zobrist_key)` is O(n)
+```python
+# Current (slow):
+if repetition_stack.count(board.zobrist_key) >= 2:
+    return 0
+```
+
+**Solution:** Use set or dict for O(1) lookup
+```python
+# Fast: track counts in dict
+repetition_counts = {}
+def check_repetition(key):
+    count = repetition_counts.get(key, 0)
+    return count >= 2
+
+def make_move_with_repetition(key):
+    repetition_counts[key] = repetition_counts.get(key, 0) + 1
+
+def unmake_move_with_repetition(key):
+    repetition_counts[key] -= 1
+    if repetition_counts[key] == 0:
+        del repetition_counts[key]
+```
+
+**Option C: If move ordering is slowest:**
+
+**Problem:** Python lists for killer/history
+```python
+# Current (slow):
+self.killer_moves: List[List[Optional[Tuple]]] = [[None, None] for _ in range(MAX_PLY)]
+self.history: List[List[List[int]]] = [[[0]*64 for _ in range(64)] for _ in range(2)]
+```
+
+**Solution:** Use numpy arrays
+```python
+# Fast:
+import numpy as np
+self.killer_moves = np.zeros((MAX_PLY, 2, 3), dtype=np.int16)  # [from, to, promo]
+self.history = np.zeros((2, 64, 64), dtype=np.int32)
+```
+
+### Phase 3: Optimize Evaluation (if time permits)
+
+**Target:** _evaluate_mobility and _evaluate_king_safety (72% of eval time)
+
+**Options:**
+1. Cache mobility results (position hash → mobility score)
+2. Approximate king safety (fewer attack checks)
+3. Simplify mobility calculation (fewer piece types)
+
+### Phase 4: Validate and Deploy
+
+**Test improvement:**
+```bash
+python3 scripts/test_complete_profile.py 2>&1 | tee test4_after_fix.txt
+```
+
+**Compare:**
+- Before: 5,083 NPS (search overhead 70%)
+- Target: 15k-25k NPS (search overhead 30-40%)
+
+**Deploy if successful:**
+```bash
+cd /root/pipier_love_api
+git pull
+sudo systemctl restart piperlove.service
+curl http://localhost:8000/move -X POST -H "Content-Type: application/json" \
+  -d '{"fen":"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1","ai_thinking_ms":1000}'
+```
 
 ---
 
-## 3. PERFORMANCE TEST RESULTS SUMMARY
+## 4. EXPECTED OUTCOMES
 
-### 3.1 Definitive JIT Test Results
-```
-Baseline (pure Python):     2,352,795 ops/sec  ✅ JIT working
-Move Generation:               31,149 ops/sec  ⚠️  75x slower
-Position Evaluation:            8,716 ops/sec  ❌ 270x slower ← PRIMARY
-Quiescence Search:             10,218 ops/sec  ⚠️  230x slower
-Alpha-Beta (depth=1):         110,843 ops/sec  ✅ JIT working
-Alpha-Beta (depth=3):         128,660 ops/sec  ✅ JIT working
-Full Search (1s):                   1 ops/sec  ❌ 2.3M x slower
-```
+### Realistic Expectations
 
-**Interpretation:**
-- JIT compiles simple code perfectly (2.3M ops/sec)
-- Evaluation is 270x slower → **confirmed as bottleneck**
-- Search functions surprisingly fast when isolated
-- Full search slow because it calls evaluation millions of times
+**Phase 1-2 (Search optimization):**
+- Current: 5,083 NPS (search overhead 159ms)
+- Target: 15k-20k NPS (search overhead 40-50ms)
+- **Improvement: 3-4x speedup**
 
-### 3.2 JIT Blocker Detection Results
-```
-✅ No eval/exec
-✅ No frame introspection  
-✅ No excessive instance variables
-❌ MATERIAL_VALUES = dict (should be array)
-❌ PHASE_VALUES = dict (should be array)
-❌ alpha_beta: 263 lines (too large)
-❌ iterative_deepening: 245 lines (too large)
-⚠️  quiescence: 200 lines (borderline)
-```
+**Phase 3 (Evaluation optimization):**
+- Current: 18,856 evals/sec
+- Target: 40k-60k evals/sec
+- **Improvement: 2-3x speedup**
 
----
+**Combined:**
+- Current: 5,083 NPS
+- Target: 20k-30k NPS
+- **Still 7-10x short of 200k NPS target**
 
-## 4. HYPOTHESIS RANKING (Probability → Impact)
+### Reality Check
+
+**The 200k NPS target may be unrealistic for pure PyPy:**
+- Test 4 shows fundamental Python overhead (70% in search infrastructure)
+- PyPy JIT can't eliminate object allocation costs
+- May need to switch to CPython + C extensions for critical paths
+
+**Alternative approaches if optimization doesn't reach target:**
+1. Hybrid: CPython + Cython for hot paths
+2. Simplify search (reduce TT size, simpler move ordering)
+3. Lower target to realistic 30k-50k NPS
+4. Profile on faster VPS hardware
 
 ### H1: Dictionary Lookups in _evaluate_material ⭐⭐⭐⭐⭐
 **Probability:** 95% - Confirmed by tests  
