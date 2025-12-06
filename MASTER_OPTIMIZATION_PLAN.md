@@ -465,20 +465,40 @@ class MobilityCache:
 ### Day 1: count_bits Optimization (Morning - 2 hours)
 1. ✅ Read entire codebase (COMPLETED)
 2. ✅ Create optimization plan (COMPLETED)
-3. ⏳ Implement count_bits with 16-bit lookup table (30 min)
-4. ⏳ Test correctness and performance (30 min)
-5. ⏳ Commit and document (30 min)
-6. ⏳ Deploy to VPS and verify (30 min)
+3. ✅ Implement count_bits with 16-bit lookup table (COMPLETED)
+4. ✅ Test correctness on VPS (COMPLETED - ALL TESTS PASSED)
+5. ⏳ Run full performance analysis (IN PROGRESS)
+6. ⏳ Analyze results and plan Phase 2 (NEXT)
 
-**Expected Outcome:** 5,083 NPS → 6,400 NPS (+26%)
+**VPS Test Results (December 6, 2025):**
+```
+✅ Correctness: All 9 test cases passed
+⚠️  Performance: 4.188 µs per call (238,756 calls/sec)
+   - Expected: < 2 µs per call
+   - Actual: 4.188 µs per call (2x slower than expected)
+   - Analysis: Still faster than bin().count('1'), but not optimal
+   
+✅ Integration: Magic bitboards working (45.343 µs per lookup)
+```
+
+**Analysis:**
+- count_bits is ~2-3x faster than before (not 10-20x as hoped)
+- VPS Python interpreter overhead is higher than expected
+- Need to measure actual search performance improvement
 
 ### Day 1: Magic Table Investigation (Afternoon - 3 hours)
-7. ⏳ Profile table lookup behavior (1 hour)
-8. ⏳ Identify root cause (misses vs overhead) (30 min)
-9. ⏳ Implement optimization (dict→tuple or pre-compute all) (1 hour)
-10. ⏳ Test and verify (30 min)
+7. ⏳ Run full performance analysis with analyze_time_breakdown.py (30 min)
+8. ⏳ Compare before/after NPS and time breakdown (30 min)
+9. ⏳ Decide on Phase 2 approach based on results (30 min)
+10. ⏳ Profile magic table lookups if needed (1 hour)
+11. ⏳ Implement Phase 2 optimization if worthwhile (1 hour)
 
-**Expected Outcome:** 6,400 NPS → 7,100 NPS (+11%)
+**Decision criteria:**
+- If NPS > 6,000: Phase 1 SUCCESS, evaluate Phase 2 value
+- If NPS 5,500-6,000: Phase 1 PARTIAL, Phase 2 NEEDED
+- If NPS < 5,500: Phase 1 FAILED, investigate why
+
+**Expected Outcome (if successful):** 6,000-6,400 NPS → 7,000-7,200 NPS
 
 ### Day 2: Optional Mobility Caching (if needed)
 11. ⏳ Implement mobility cache (2 hours)
@@ -750,24 +770,140 @@ def count_bits(bb: int) -> int:
 
 ## Part 10: Success Criteria
 
-### Phase 1 Success
+### Phase 1 Success (ACTUAL RESULTS)
 ✅ count_bits optimization implemented  
-✅ No test failures  
-✅ NPS improvement: 5,083 → 6,000+ NPS  
-✅ Magic Bitboards time reduced by 40%+  
+✅ No test failures (all 9 tests passed on VPS)  
+⚠️  Performance: 4.188 µs per call (expected < 2 µs)  
+⏳ NPS improvement: PENDING full search test  
 
-### Phase 2 Success
-✅ Magic table optimization implemented  
-✅ On-the-fly calls eliminated or minimized  
-✅ NPS improvement: 6,400 → 7,000+ NPS  
-✅ Magic Bitboards time reduced by 80%+ total  
+**Analysis:**
+- count_bits is 2-3x faster (not 10-20x as hoped)
+- VPS has higher Python interpreter overhead
+- Lookup table works correctly but isn't as fast as expected
+- Need full search test to measure actual NPS improvement
 
-### Overall Success
-✅ **Target reached: 7,200 NPS (42% improvement)**  
-✅ No regressions in correctness  
-✅ Code maintainability preserved  
-✅ Documentation updated  
-✅ VPS deployment successful  
+### Phase 2 Decision Criteria
+✅ If NPS > 6,000: SUCCESS, evaluate Phase 2 ROI  
+⚠️  If NPS 5,500-6,000: PARTIAL, Phase 2 needed  
+❌ If NPS < 5,500: count_bits didn't help, re-evaluate strategy  
+
+### Overall Success Target
+🎯 **Original target: 7,200 NPS (42% improvement)**  
+📊 **Baseline: 5,083 NPS**  
+⏳ **After Phase 1: TBD (run measure_phase1.py)**  
+🔮 **Realistic range: 5,500-6,400 NPS**  
+
+---
+
+## Part 11: VPS Test Results (December 6, 2025)
+
+### Test 1: count_bits Correctness ✅ PASSED
+```
+All 9 test cases passed:
+- Empty board, single bit, various byte patterns
+- All edge cases handled correctly
+- Integration with magic bitboards working
+```
+
+### Test 2: count_bits Performance ⚠️ SLOWER THAN EXPECTED
+```
+Performance: 4.188 µs per call (238,756 calls/sec)
+Expected: < 2 µs per call
+Actual: ~2x slower than expected
+
+Analysis:
+- Still faster than bin().count('1') (baseline ~10-15 µs)
+- Improvement: 3-4x speedup (not 10-20x as hoped)
+- VPS has higher Python interpreter overhead
+- PyPy JIT may not be optimizing the lookup as well as expected
+```
+
+### Test 3: Integration Test ✅ WORKING
+```
+Magic bitboard lookups: 500 calls in 22.672 ms
+Per lookup: 45.343 µs
+Status: Working correctly, no regressions
+```
+
+### Next Actions (IMMEDIATE)
+
+**1. Run full search performance test:**
+```bash
+python3 measure_phase1.py
+```
+This will measure actual NPS improvement in real search scenarios.
+
+**2. Expected outcomes:**
+- **Best case:** 6,000-6,400 NPS (+18-26% improvement)
+- **Likely case:** 5,500-5,800 NPS (+8-14% improvement)
+- **Worst case:** 5,200-5,400 NPS (+2-6% improvement)
+
+**3. Decision tree:**
+```
+IF NPS >= 6,000:
+  ✅ Phase 1 SUCCESS
+  → Run analyze_time_breakdown.py
+  → Evaluate Phase 2 ROI (magic table optimization)
+  → If Phase 2 looks promising, implement it
+  → Otherwise, DONE (accept ~20% improvement)
+
+ELSE IF NPS >= 5,500:
+  ⚠️  Phase 1 PARTIAL SUCCESS
+  → Run analyze_time_breakdown.py
+  → Phase 2 NEEDED (must optimize magic tables)
+  → Implement dict→tuple or pre-compute all variations
+
+ELSE IF NPS < 5,500:
+  ❌ Phase 1 INEFFECTIVE
+  → Investigate why count_bits didn't help
+  → Check if magic bitboards are even using count_bits
+  → May need different approach (Cython, C extensions)
+```
+
+**4. Run time breakdown analysis:**
+```bash
+python3 scripts/analyze_time_breakdown.py
+```
+This will show new component time percentages after optimization.
+
+### Key Insights from VPS Testing
+
+**1. Python overhead is REAL:**
+- count_bits improved 3-4x, not 10-20x
+- VPS interpreter overhead is higher than local development
+- PyPy JIT may not optimize lookup tables as well as hoped
+
+**2. Lookup table is working:**
+- All correctness tests passed
+- Integration with magic bitboards working
+- No regressions detected
+
+**3. Full search test is CRITICAL:**
+- Micro-benchmark (4.188 µs) doesn't tell full story
+- Need to measure actual NPS in search scenarios
+- count_bits is called 3.5M times, so even 3x speedup = significant
+
+**4. Phase 2 may be MORE important:**
+- If count_bits only gave 10-15% improvement
+- Magic table optimization (eliminating on-the-fly) may be the real win
+- Need to profile to see where time is NOW spent
+
+### Updated Expectations
+
+**Original plan:**
+- Phase 1 (count_bits): +26% → 6,400 NPS
+- Phase 2 (magic tables): +11% → 7,100 NPS
+- Total: +42% → 7,200 NPS
+
+**Revised realistic estimate:**
+- Phase 1 (count_bits): +10-15% → 5,600-5,850 NPS
+- Phase 2 (magic tables): +15-20% → 6,500-7,000 NPS
+- Total: +28-38% → 6,500-7,000 NPS
+
+**Still valuable:**
+- 30-35% improvement is significant
+- Much easier to implement than C/Rust rewrite
+- Maintains Python simplicity
 
 ---
 

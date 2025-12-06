@@ -6,7 +6,9 @@ Compares current performance with baseline.
 
 import time
 import sys
-from src.board_state import BoardState
+from src.chess_engine import ChessBoard
+from src.evaluation import Evaluator
+from src.search import TranspositionTable, MoveOrderer, SearchStats, iterative_deepening
 
 print("=" * 70)
 print("PHASE 1 PERFORMANCE MEASUREMENT")
@@ -14,13 +16,16 @@ print("=" * 70)
 
 # Initialize engine
 print("\nInitializing engine...")
-board = BoardState()
-board.set_position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+board = ChessBoard()
+evaluator = Evaluator()
 
 # Warm up PyPy JIT
 print("Warming up PyPy JIT...")
 for _ in range(5):
-    result = board.search(depth=3, time_limit_ms=1000)
+    tt = TranspositionTable(size_mb=64)
+    orderer = MoveOrderer()
+    stats = SearchStats()
+    result = iterative_deepening(board, 1000, 3, evaluator, tt, orderer, stats)
 
 # Run performance test
 print("\nRunning performance test (10 searches at depth 4)...")
@@ -31,11 +36,15 @@ total_nodes = 0
 searches = 10
 
 for i in range(searches):
+    tt = TranspositionTable(size_mb=64)
+    orderer = MoveOrderer()
+    stats = SearchStats()
+    
     start = time.perf_counter()
-    result = board.search(depth=4, time_limit_ms=5000)
+    best_move, best_score, pv = iterative_deepening(board, 10000, 4, evaluator, tt, orderer, stats)
     elapsed = time.perf_counter() - start
     
-    nodes = result.get('nodes', 0)
+    nodes = stats.nodes
     nps = nodes / elapsed if elapsed > 0 else 0
     
     total_time += elapsed
