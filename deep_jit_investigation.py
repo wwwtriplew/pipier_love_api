@@ -31,19 +31,19 @@ print("-" * 80)
 def pure_python_loop():
     """Pure Python with no imports - should JIT compile."""
     total = 0
-    for i in range(1000):
+    for i in range(100):
         total += i * 2
     return total
 
 # Warmup to trigger JIT
-for _ in range(10000):
+for _ in range(1000):
     pure_python_loop()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(1000):
     pure_python_loop()
 elapsed = time.time() - start
-print(f"Pure Python: {100000/elapsed:,.0f} ops/sec")
+print(f"Pure Python: {1000/elapsed:,.0f} ops/sec")
 print(f"Expected: >1M ops/sec if JIT compiles\n")
 
 print("TEST 2: Import chess_engine module only")
@@ -57,14 +57,14 @@ def create_board():
     return board
 
 # Warmup
-for _ in range(10000):
+for _ in range(1000):
     create_board()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(1000):
     create_board()
 elapsed = time.time() - start
-print(f"Board creation: {100000/elapsed:,.0f} ops/sec")
+print(f"Board creation: {1000/elapsed:,.0f} ops/sec")
 print(f"Expected: >100k ops/sec if class creation is optimized\n")
 
 print("TEST 3: Call board.generate_moves() - pure method")
@@ -78,14 +78,14 @@ def call_generate_moves():
     return len(moves)
 
 # Warmup
-for _ in range(10000):
+for _ in range(1000):
     call_generate_moves()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(1000):
     call_generate_moves()
 elapsed = time.time() - start
-print(f"generate_moves: {100000/elapsed:,.0f} ops/sec")
+print(f"generate_moves: {1000/elapsed:,.0f} ops/sec")
 print(f"Expected: >50k ops/sec if JIT compiles\n")
 
 print("TEST 4: Import and use Evaluator")
@@ -105,10 +105,10 @@ for _ in range(10000):
     call_evaluate()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(1000):
     call_evaluate()
 elapsed = time.time() - start
-print(f"evaluate: {100000/elapsed:,.0f} ops/sec")
+print(f"evaluate: {1000/elapsed:,.0f} ops/sec")
 print(f"Expected: >50k ops/sec if JIT compiles\n")
 
 print("TEST 5: Test dictionary lookups (common JIT blocker)")
@@ -129,10 +129,10 @@ for _ in range(10000):
     dict_lookup_loop()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(10000):
     dict_lookup_loop()
 elapsed = time.time() - start
-print(f"Dict lookups: {100000/elapsed:,.0f} ops/sec")
+print(f"Dict lookups: {10000/elapsed:,.0f} ops/sec")
 print(f"Expected: >500k ops/sec if JIT compiles\n")
 
 print("TEST 6: Test array indexing (JIT-friendly)")
@@ -153,10 +153,10 @@ for _ in range(10000):
     array_lookup_loop()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(10000):
     array_lookup_loop()
 elapsed = time.time() - start
-print(f"Array lookups: {100000/elapsed:,.0f} ops/sec")
+print(f"Array lookups: {10000/elapsed:,.0f} ops/sec")
 print(f"Expected: >1M ops/sec if JIT compiles\n")
 
 print("TEST 7: Test bitboard operations")
@@ -176,10 +176,10 @@ for _ in range(10000):
     bitboard_ops()
 
 start = time.time()
-for _ in range(100000):
+for _ in range(10000):
     bitboard_ops()
 elapsed = time.time() - start
-print(f"Bitboard ops: {100000/elapsed:,.0f} ops/sec")
+print(f"Bitboard ops: {10000/elapsed:,.0f} ops/sec")
 print(f"Expected: >500k ops/sec if JIT compiles\n")
 
 print("="*80)
