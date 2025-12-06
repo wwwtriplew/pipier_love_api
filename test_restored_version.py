@@ -8,7 +8,7 @@ def perft(cb, depth):
     if depth == 0:
         return 1
     nodes = 0
-    for move in cb.generate_legal_moves():
+    for move in cb.generate_moves():  # Fixed: use generate_moves()
         cb.make_move(*move)
         nodes += perft(cb, depth - 1)
         cb.unmake_move()
