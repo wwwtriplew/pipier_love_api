@@ -36,12 +36,13 @@ else:
     while node.variations:
         next_node = node.variation(0)  # Main variation
         if next_node.move:
+            san = board.san(next_node.move)  # Get SAN before pushing
             board.push(next_node.move)
             if board.turn == chess.WHITE:
-                print(f"{move_num}...{board.san(next_node.move)}")
+                print(f"{move_num}...{san}")
                 move_num += 1
             else:
-                print(f"{move_num}.{board.san(next_node.move)}", end=" ")
+                print(f"{move_num}.{san}", end=" ")
         node = next_node
     
     print("\n\nFinal position FEN:")
