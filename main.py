@@ -12,7 +12,7 @@ from src.search import (
     MoveOrderer, SearchStats, iterative_deepening,
     move_to_uci
 )
-from src.opening_book import probe_book, get_default_book
+from src.opening_book import probe_book, get_book_chain
 
 # Maximum search depth
 MAX_DEPTH = 50  # Iterative deepening will stop at time limit anyway
@@ -27,13 +27,13 @@ evaluator = Evaluator()
 # ========================================
 # OPENING BOOK INITIALIZATION
 # ========================================
-# Load opening book on startup to verify it's accessible
-print("📚 Initializing opening book...")
-opening_book = get_default_book()
-if opening_book:
-    print("✓ Opening book loaded successfully")
+# Load opening books on startup (supports multiple books with fallback)
+print("📚 Initializing opening books...")
+book_chain = get_book_chain()
+if book_chain:
+    print(f"✓ Loaded {len(book_chain)} opening book(s)")
 else:
-    print("⚠️  No opening book found - will use search only")
+    print("⚠️  No opening books found - will use search only")
 
 app = FastAPI(
     title="Piper Love Chess Engine API",

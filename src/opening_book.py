@@ -389,19 +389,21 @@ class OpeningBook:
         return (from_sq, to_sq, promotion)
 
 
-# Singleton instance for default book
-_default_book: Optional[OpeningBook] = None
+# Book instances for multi-book fallback
+_book_chain: Optional[List[OpeningBook]] = None
 
-def get_default_book() -> Optional[OpeningBook]:
-    """Get or create default opening book instance."""
-    global _default_book
-    if _default_book is None:
+def get_book_chain() -> List[OpeningBook]:
+    """Get or create chain of opening books (priority order)."""
+    global _book_chain
+    if _book_chain is None:
+        _book_chain = []
+        
         # Try standard locations with PRIORITY ORDER
-        # Custom Piper Love Black repertoire has highest priority
+        # Custom Piper Love Black repertoire has highest priority, then fallback to larger books
         book_paths = [
-            "openingbook/piperlove_black.bin",  # HIGHEST PRIORITY - Custom Caro-Kann
-            "openingbook/baron343/baron30.bin",
-            "openingbook/baron343/book.bin",
+            "openingbook/piperlove_black.bin",  # HIGHEST PRIORITY - Custom Caro-Kann repertoire
+            "openingbook/baron343/baron30.bin", # Fallback - Large general book
+            "openingbook/baron343/book.bin",     # Fallback - Alternative general book
             "openingbook/book.bin",
             "../openingbook/piperlove_black.bin",
             "../openingbook/baron343/baron30.bin",
@@ -409,28 +411,41 @@ def get_default_book() -> Optional[OpeningBook]:
             "../openingbook/book.bin",
         ]
         
+        loaded_paths = set()  # Avoid loading same book twice
         for path in book_paths:
-            if os.path.exists(path):
-                _default_book = OpeningBook(path)
-                if _default_book.is_loaded():
-                    print(f"✓ Loaded opening book: {path}")
-                    break
+            if os.path.exists(path) and path not in loaded_paths:
+                book = OpeningBook(path)
+                if book.is_loaded():
+                    _book_chain.append(book)
+                    loaded_paths.add(path)
+                    print(f"✓ Loaded opening book: {path} ({len(book.entries)} entries)")
     
-    return _default_book if _default_book and _default_book.is_loaded() else None
+    return _book_chain
+
+
+def get_default_book() -> Optional[OpeningBook]:
+    """Get primary opening book (for backward compatibility)."""
+    chain = get_book_chain()
+    return chain[0] if chain else None
 
 
 def probe_book(board, randomize: bool = True) -> Optional[Tuple[int, int, Optional[int]]]:
     """
-    Convenience function to probe default opening book.
+    Probe opening books in priority order with fallback.
+    
+    Tries each book in chain until a move is found:
+    1. Custom repertoire (piperlove_black.bin) - specific preparation
+    2. General book (baron30.bin) - broader coverage
     
     Args:
         board: ChessBoard instance
         randomize: If True, select randomly weighted by book weights
         
     Returns:
-        Move tuple or None
+        Move tuple or None if position not in any book
     """
-    book = get_default_book()
-    if book:
-        return book.probe(board, randomize)
+    for book in get_book_chain():
+        move = book.probe(board, randomize)
+        if move is not None:
+            return move
     return None
