@@ -1323,9 +1323,12 @@ def alpha_beta_root(board: ChessBoard, depth: int, alpha: int, beta: int,
 
 def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
                        evaluator: Evaluator, tt: Optional[TranspositionTable], orderer: MoveOrderer,
-                       stats: SearchStats) -> Tuple[Optional[Tuple], int, List[Tuple]]:
+                       stats: SearchStats) -> Tuple[Optional[Tuple], int, List[Tuple], int]:
     """
     Iterative deepening framework - search progressively deeper until time expires.
+    
+    Returns:
+        (best_move, best_score, pv_line, completed_depth)
     
     Benefits:
     1. Anytime algorithm: can stop at any point with best move from last completed depth
@@ -1468,12 +1471,13 @@ def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
     # Early exit check
     moves = board.generate_moves()
     if len(moves) == 0:
-        return None, 0, []
+        return None, 0, [], 0
     
     only_one_move = len(moves) == 1
     
     # === 2. Iterative deepening loop ===
     delta = ASPIRATION_DELTA_INITIAL
+    completed_depth = 0  # Track the last fully completed depth
     
     for depth in range(1, max_depth + 1):
         # a. Check time before starting depth
@@ -1538,6 +1542,7 @@ def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
             best_score = score
             best_move = move
             pv_line = pv
+            completed_depth = depth  # Track completed depth
         
         # g. Print UCI info (only if we updated results)
         if aspiration_completed or depth == 1:
@@ -1568,9 +1573,9 @@ def iterative_deepening(board: ChessBoard, max_time_ms: int, max_depth: int,
             board, 1, -MATE_SCORE, MATE_SCORE,
             evaluator, tt, orderer, stats, repetition_stack
         )
-        return move, score, pv
+        return move, score, pv, 1  # Return depth 1
     
-    return best_move, best_score, pv_line
+    return best_move, best_score, pv_line, completed_depth
 
 
 # ============================================================================
@@ -1609,7 +1614,7 @@ class SearchEngine:
             depth: Maximum search depth (None = use time limit)
         
         Returns:
-            (best_move, score, pv_line)
+            (best_move, score, pv_line, completed_depth)
         """
         # Use default values if not specified
         if time_ms is None and depth is None:

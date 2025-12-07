@@ -175,7 +175,7 @@ async def calculate_move(request: MoveRequest):
         
         # Run iterative deepening search
         # Note: repetition_stack is created internally by iterative_deepening
-        best_move, best_score, pv_line = iterative_deepening(
+        best_move, best_score, pv_line, completed_depth = iterative_deepening(
             board=board,
             max_time_ms=request.ai_thinking_ms,
             max_depth=MAX_DEPTH,
@@ -204,7 +204,7 @@ async def calculate_move(request: MoveRequest):
         return MoveResponse(
             move=move_uci,
             score=best_score,
-            depth=MAX_DEPTH,  # Placeholder - real depth tracked by iterative deepening
+            depth=completed_depth,  # Actual depth completed
             nodes=stats.nodes,
             nps=stats.nps(),
             time_ms=elapsed_ms,
