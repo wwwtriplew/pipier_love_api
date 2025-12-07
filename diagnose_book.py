@@ -37,7 +37,7 @@ def main():
     book = get_default_book()
     if book:
         print(f"  ✓ Book loaded successfully")
-        print(f"  ✓ Entries: {book.num_entries}")
+        print(f"  ✓ Entries: {len(book.entries)}")
     else:
         print(f"  ✗ Failed to load book")
         return
