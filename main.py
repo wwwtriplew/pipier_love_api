@@ -13,23 +13,6 @@ from src.search import (
     move_to_uci
 )
 from src.opening_book import probe_book, get_default_book
-from src.jit_warmup import warmup_jit
-
-# ========================================
-# PYPY JIT WARMUP (Critical for Performance)
-# ========================================
-# PyPy JIT needs ~25 iterations to compile hot loops.
-# Without warmup, first request is SLOW (5-8k NPS).
-# With warmup, all requests are FAST (50k-200k+ NPS).
-try:
-    import __pypy__  # type: ignore[import-not-found]
-    # Running under PyPy - warm up the JIT
-    print("🔥 Detected PyPy - running JIT warmup...")
-    warmup_nps = warmup_jit()
-    print(f"✓ PyPy JIT warmed up - ready for {warmup_nps:,} NPS")
-except ImportError:
-    # Running under CPython - no warmup needed
-    print("ℹ️  Running under CPython (no JIT warmup needed)")
 
 # Maximum search depth
 MAX_DEPTH = 50  # Iterative deepening will stop at time limit anyway

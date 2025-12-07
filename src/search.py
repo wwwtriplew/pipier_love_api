@@ -1604,7 +1604,7 @@ class SearchEngine:
         self.stats = SearchStats()
     
     def search(self, board: ChessBoard, time_ms: Optional[int] = None, 
-               depth: Optional[int] = None) -> Tuple[Optional[Tuple], int, List[Tuple]]:
+               depth: Optional[int] = None) -> Tuple[Optional[Tuple], int, List[Tuple], int]:
         """
         Search for best move.
         
