@@ -1,6 +1,17 @@
 [Event "Piper Love Black Repertoire"]
 [Site "Custom Book"]
 [Date "2025.12.06"]
+[Round "0"]
+[White "Various"]
+[Black "Caro-Kann Advance - Main Line"]
+[Result "*"]
+[Comment "Simple main line to ensure key positions are in book"]
+
+1. e4 c6 2. d4 d5 3. e5 c5 4. dxc5 e6 5. b4 a5 6. bxa5 Bxc5 7. Nf3 Qxa5+ 8. Bd2 Qb6 *
+
+[Event "Piper Love Black Repertoire"]
+[Site "Custom Book"]
+[Date "2025.12.06"]
 [Round "1"]
 [White "Various"]
 [Black "Caro-Kann Exchange"]
