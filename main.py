@@ -12,7 +12,7 @@ from src.search import (
     MoveOrderer, SearchStats, iterative_deepening,
     move_to_uci
 )
-from src.opening_book import probe_book
+from src.opening_book import probe_book, get_default_book
 from src.jit_warmup import warmup_jit
 
 # ========================================
@@ -40,6 +40,17 @@ MAX_DEPTH = 50  # Iterative deepening will stop at time limit anyway
 evaluator = Evaluator()
 # NOTE: TT was removed after testing showed +26.7% performance improvement
 # at production depth (4-5). Zobrist hashing is retained for repetition detection.
+
+# ========================================
+# OPENING BOOK INITIALIZATION
+# ========================================
+# Load opening book on startup to verify it's accessible
+print("📚 Initializing opening book...")
+opening_book = get_default_book()
+if opening_book:
+    print("✓ Opening book loaded successfully")
+else:
+    print("⚠️  No opening book found - will use search only")
 
 app = FastAPI(
     title="Piper Love Chess Engine API",
